@@ -57,6 +57,46 @@ def guess_mime_type(filename: str, fallback: str | None = None) -> str:
     return guessed or fallback or "application/octet-stream"
 
 
+# Magic-byte prefixes per MIME type. The API answers a malformed upload with a
+# bare `400 INVALID_ARGUMENT` for every model, which is indistinguishable from a
+# real server error at the endpoint, so it is worth catching on the way in.
+_MAGIC_PREFIXES: dict[str, tuple[bytes, ...]] = {
+    "image/png": (b"\x89PNG\r\n\x1a\n",),
+    "image/jpeg": (b"\xff\xd8\xff",),
+    "image/webp": (b"RIFF",),
+}
+
+
+def validate_upload(filename: str, data: bytes, mime_type: str) -> None:
+    """Reject files whose contents contradict their declared type.
+
+    The API answers a malformed upload with a bare `400 INVALID_ARGUMENT` for
+    every model, which is indistinguishable from a real server error at the
+    endpoint, so it is worth catching on the way in before any quota is spent.
+
+    The PDF check is deliberately shallow. Parsing a real PDF is out of scope, but
+    the header and trailer are cheap to verify and catch the common failure: a
+    file that is named ``.pdf`` but is really text, or a truncated download.
+    """
+    if mime_type == "application/pdf":
+        if b"%PDF-" not in data[:1024]:
+            _reject(filename, "PDF")
+        if b"%%EOF" not in data[-2048:]:
+            _reject(filename, "PDF")
+        return
+
+    expected = _MAGIC_PREFIXES.get(mime_type)
+    if expected and not any(data.startswith(prefix) for prefix in expected):
+        _reject(filename, mime_type.split("/", 1)[-1].upper())
+
+
+def _reject(filename: str, readable: str) -> None:
+    raise ValueError(
+        f"{filename} does not look like a valid {readable} file. "
+        "The file may be corrupt, truncated, or renamed from another format."
+    )
+
+
 def is_youtube_url(url: str) -> bool:
     try:
         host = (urlparse(url).hostname or "").lower()
@@ -103,11 +143,9 @@ def build_parts(
     for filename, data, declared in files or []:
         if not data:
             continue
-        parts.append(
-            types.Part.from_bytes(
-                data=data, mime_type=guess_mime_type(filename, declared)
-            )
-        )
+        mime_type = guess_mime_type(filename, declared)
+        validate_upload(filename, data, mime_type)
+        parts.append(types.Part.from_bytes(data=data, mime_type=mime_type))
 
     if not parts:
         raise ValueError(

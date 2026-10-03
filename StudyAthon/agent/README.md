@@ -33,9 +33,36 @@ Design notes:
 - **Every schema field has a default.** ADK validates a stage's output against
   its `output_schema`, and a validation error aborts the whole run. Quality
   decisions belong to `grounding_validator`, not to Pydantic.
+- **Every stage uses `ResilientGemini`**, which retries transient errors with
+  backoff and falls through to the next model. See "Model availability" below.
 - **`LoopAgent` is deliberately unused.** It is deprecated in ADK 2.11 in favour
   of a graph-based `Workflow` that is not yet exported from `google.adk.agents`.
   If per-concept batching is ever needed, use a `Workflow` with a dynamic fan-out.
+
+### Model availability
+
+`gemini-3.8-flash` returns `503 UNAVAILABLE ... high demand` intermittently, and
+a single 503 would otherwise kill an entire four-stage run. `ResilientGemini`
+wraps each model call to retry with exponential backoff, then try the next
+candidate.
+
+Two subtleties it handles:
+
+- `models.list()` is not an availability signal. `gemini-2.5-flash` and
+  `gemini-3.1-flash` both appeared in the listing but returned 404 on
+  `generate_content`.
+- A 429 is not always retryable. The Gemini free tier caps
+  `generate_content_free_tier_requests` per day, per model, and reports a wait
+  measured in hours (`retryDelay: "16531s"`). Retrying that with backoff just
+  burns time, so a multi-hour `RetryInfo` is classified as "try a different
+  model" instead.
+
+### Free-tier quota
+
+The free tier allows **20 requests per day per model**, and one ingestion run
+makes **4 requests**. That is roughly 5 ingestions per model per day, or ~20 per
+day across the four-model fallback chain. A full run takes 3-4 minutes. For
+repeated testing, enable billing.
 
 ### Requesting questions
 
