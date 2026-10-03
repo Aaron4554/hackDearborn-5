@@ -9,11 +9,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
+import { chat, describeAgentError } from '@/services/agent';
+
+// Some suggestions are a real route rather than text to prefill: a quiz needs a
+// session, a question count, and a timer, so sending it as a chat prompt would
+// quietly drop everything the study loop asks the student to choose.
 const suggestions = [
-  'Explain a tough topic',
-  'Quiz me on my notes',
-  'Make a study plan',
+  { label: 'Explain a tough topic', to: null },
+  { label: 'Quiz me on my notes', to: '/study/setup' },
+  { label: 'Make a study plan', to: null },
 ];
 
 const futureTools = [
@@ -45,35 +51,24 @@ export default function HomeScreen() {
       return;
     }
 
-    const apiUrl = process.env.EXPO_PUBLIC_AGENT_API_URL?.replace(/\/$/, '');
-    if (!apiUrl) {
-      setMessage('Set EXPO_PUBLIC_AGENT_API_URL in StudyAthon/.env to connect your agent.');
-      return;
-    }
-
     setIsLoading(true);
     setMessage('');
     setAnswer('');
     try {
-      const response = await fetch(`${apiUrl}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt.trim() }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || 'The study buddy could not respond.');
-      }
-      setAnswer(data.reply);
+      setAnswer(await chat(prompt.trim()));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not reach the study buddy. Check your server URL.');
+      setMessage(describeAgentError(error));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const chooseSuggestion = (suggestion: string) => {
-    setPrompt(suggestion);
+  const chooseSuggestion = (suggestion: { label: string; to: string | null }) => {
+    if (suggestion.to) {
+      router.push(suggestion.to as '/study/setup');
+      return;
+    }
+    setPrompt(suggestion.label);
     setMessage('');
   };
 
@@ -151,14 +146,38 @@ export default function HomeScreen() {
           <View style={styles.chips}>
             {suggestions.map((suggestion) => (
               <Pressable
-                key={suggestion}
+                key={suggestion.label}
                 onPress={() => chooseSuggestion(suggestion)}
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
-                <Text style={styles.chipText}>{suggestion}</Text>
+                <Text style={styles.chipText}>{suggestion.label}</Text>
               </Pressable>
             ))}
           </View>
+        </View>
+
+        <View style={styles.loopCard}>
+          <View style={styles.loopHead}>
+            <View style={styles.toolIcon}>
+              <Ionicons name="repeat" size={21} color="#FFFFFF" />
+            </View>
+            <View style={styles.toolCopy}>
+              <Text style={styles.loopTitle}>Study loop</Text>
+              <Text style={styles.loopDetail}>Questions that react to how you answer</Text>
+            </View>
+            <View style={styles.liveBadge}><Text style={styles.liveText}>LIVE</Text></View>
+          </View>
+          <Text style={styles.loopBody}>
+            Drop in your material, pick how many questions you want, and set a timer. Miss one and
+            it comes back reworded. Get them all right and the next set gets harder.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/study/setup')}
+            style={({ pressed }) => [styles.loopButton, pressed && styles.loopButtonPressed]}>
+            <Text style={styles.loopButtonText}>Start a study loop</Text>
+            <Feather name="arrow-up-right" size={16} color="#FFFFFF" />
+          </Pressable>
         </View>
 
         <View style={styles.toolsHeading}>
@@ -291,4 +310,24 @@ const styles = StyleSheet.create({
   toolDetail: { color: '#9AA39C', fontSize: 10, marginTop: 4 },
   footerNote: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, marginTop: 15 },
   footerText: { color: '#92A095', fontSize: 10 },
+
+  loopCard: { backgroundColor: '#477B5B', borderRadius: 22, padding: 18, marginTop: 26 },
+  loopHead: { flexDirection: 'row', alignItems: 'center' },
+  loopTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
+  loopDetail: { color: '#C6DCCC', fontSize: 10, marginTop: 4 },
+  liveBadge: { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6 },
+  liveText: { color: '#FFFFFF', fontSize: 8, fontWeight: '800', letterSpacing: 0.8 },
+  loopBody: { color: '#DCE9DF', fontSize: 13, lineHeight: 20, marginTop: 14 },
+  loopButton: {
+    minHeight: 46,
+    borderRadius: 14,
+    backgroundColor: '#2F4A38',
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  loopButtonPressed: { backgroundColor: '#263A2D' },
+  loopButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 });

@@ -1,11 +1,13 @@
-import os
-
 from google.adk.agents import Agent
 
+from study_buddy.settings import resilient_model
 
 root_agent = Agent(
     name="study_buddy",
-    model=os.getenv("STUDYATHON_MODEL", "gemini-3.8-flash"),
+    # Use the retry-and-fallback wrapper rather than a bare model name. The
+    # Gemini free tier caps requests per day per model and returns 429 with a
+    # multi-hour reset, which would otherwise fail every single /chat call.
+    model=resilient_model(),
     description="A friendly AI study buddy that helps students learn and practice.",
     instruction=(
         "You are StudyAthon, a patient and encouraging study tutor. Explain ideas "
