@@ -2,7 +2,7 @@ import os
 from uuid import uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,12 @@ from google.genai import types
 load_dotenv()
 
 from study_buddy.agent import root_agent
+from study_buddy.ingest.runner import IngestResult, build_parts, run_ingestion
+
+# Inline request bodies are capped so a mistaken multi-file upload cannot push a
+# multi-megabyte payload through the Gemini request. Uploaded study material is
+# normally well under this.
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
 APP_NAME = "study_buddy"
 session_service = InMemorySessionService()
@@ -40,6 +46,14 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+
+
+class IngestResponse(BaseModel):
+    questions: list[dict]
+    rejected: list[dict]
+    coverage_gaps: list[str]
+    concepts: list[dict]
+    source_notes: dict
 
 
 @app.get("/health")
@@ -82,6 +96,55 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # Avoid returning provider credentials or internal traces to the client.
         print(f"ADK request failed: {error}")
         raise HTTPException(status_code=502, detail="The study agent failed to respond.") from error
+
+
+@app.post("/ingest", response_model=IngestResponse)
+async def ingest(
+    text: str | None = Form(default=None),
+    urls: list[str] = Form(default_factory=list),
+    files: list[UploadFile] = File(default_factory=list),
+) -> IngestResponse:
+    """Turn raw study material into a validated multiple-choice question bank.
+
+    Multipart form fields, so one request can carry pasted notes, a lecture URL,
+    and a photo of a whiteboard together. The mobile client sends a FormData
+    body. At least one of the three fields must be non-empty.
+
+    Runs four model calls in sequence, so this is slow by design (tens of
+    seconds). It is a batch operation, not something to call on a keystroke.
+    """
+    uploads: list[tuple[str, bytes, str | None]] = []
+    for upload in files:
+        data = await upload.read()
+        if len(data) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"{upload.filename or 'file'} exceeds the upload size limit.",
+            )
+        uploads.append((upload.filename or "upload", data, upload.content_type))
+
+    try:
+        parts = build_parts(text=text, urls=urls, files=uploads)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    try:
+        result: IngestResult = await run_ingestion(parts)
+    except Exception as error:
+        # Avoid returning provider credentials or internal traces to the client.
+        print(f"Ingestion failed: {error}")
+        raise HTTPException(
+            status_code=502, detail="Ingestion failed to produce a question bank."
+        ) from error
+
+    bank = result.question_bank
+    return IngestResponse(
+        questions=bank.get("approved") or [],
+        rejected=bank.get("rejected") or [],
+        coverage_gaps=bank.get("coverage_gaps") or [],
+        concepts=result.concepts,
+        source_notes=result.source_notes,
+    )
 
 
 if __name__ == "__main__":
