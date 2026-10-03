@@ -32,6 +32,44 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /userPrivate/{uid} {
+      // Names and study details are private, especially for younger students.
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          'uid', 'firstName', 'lastName', 'educationLevel', 'gradeLevel',
+          'takesAdvancedClasses', 'age', 'createdAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.firstName is string
+        && request.resource.data.firstName.size() > 0
+        && request.resource.data.firstName.size() <= 80
+        && request.resource.data.lastName is string
+        && request.resource.data.lastName.size() > 0
+        && request.resource.data.lastName.size() <= 80
+        && request.resource.data.educationLevel in [
+          'k12', 'high_school', 'college', 'university', 'graduate', 'other'
+        ]
+        && (request.resource.data.educationLevel == 'k12'
+          ? request.resource.data.gradeLevel is string
+            && request.resource.data.gradeLevel.matches('^(K|[1-8])$')
+            && request.resource.data.takesAdvancedClasses == null
+          : request.resource.data.educationLevel == 'high_school'
+            ? request.resource.data.gradeLevel is string
+              && request.resource.data.gradeLevel.matches('^(9|10|11|12)$')
+              && request.resource.data.takesAdvancedClasses is bool
+            : request.resource.data.gradeLevel == null
+              && request.resource.data.takesAdvancedClasses == null)
+        && (request.resource.data.age == null
+          || (request.resource.data.age is int
+            && request.resource.data.age >= 5
+            && request.resource.data.age <= 100))
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
     match /handles/{handleId} {
       allow get: if signedIn();
       allow list: if false;
