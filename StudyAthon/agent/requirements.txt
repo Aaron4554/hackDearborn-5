@@ -2,3 +2,5 @@ google-adk
 fastapi
 uvicorn[standard]
 python-dotenv
+# Required by FastAPI for the /ingest Form and File parameters.
+python-multipart
