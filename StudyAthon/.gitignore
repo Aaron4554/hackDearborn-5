@@ -30,13 +30,14 @@ yarn-error.*
 .DS_Store
 *.pem
 
+#Firebase
+firebase.js
+
 # local env files
 .env*.local
 
 # typescript
 *.tsbuildinfo
-
-example
 
 # generated native folders
 /ios
