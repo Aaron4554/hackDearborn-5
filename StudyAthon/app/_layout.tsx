@@ -14,7 +14,7 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: 'login',
+  initialRouteName: 'index',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -49,7 +49,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, personalInfo, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen label="Opening your study space…" />;
@@ -58,14 +58,16 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        {/* The root route decides where to start after Firebase restores auth. */}
+        <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Protected guard={!user}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="sign-up" options={{ headerShown: false }} />
         </Stack.Protected>
-        <Stack.Protected guard={!!user && !profile}>
+        <Stack.Protected guard={!!user && (!profile || !personalInfo)}>
           <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
         </Stack.Protected>
-        <Stack.Protected guard={!!user && !!profile}>
+        <Stack.Protected guard={!!user && !!profile && !!personalInfo}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
