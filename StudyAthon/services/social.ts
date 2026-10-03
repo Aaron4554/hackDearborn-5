@@ -19,6 +19,17 @@ export type UserProfile = {
   points: number;
 };
 
+export type EducationLevel = 'k12' | 'high_school' | 'college' | 'university' | 'graduate' | 'other';
+
+export type PersonalInfo = {
+  firstName: string;
+  lastName: string;
+  educationLevel: EducationLevel;
+  gradeLevel: string | null;
+  takesAdvancedClasses: boolean | null;
+  age: number | null;
+};
+
 export type FriendRequest = {
   id: string;
   fromUid: string;
@@ -48,13 +59,47 @@ export function profileFromData(data: Record<string, unknown>): UserProfile {
   };
 }
 
-export async function createUserProfile(uid: string, username: string): Promise<UserProfile> {
+export function personalInfoFromData(data: Record<string, unknown>): PersonalInfo {
+  return {
+    firstName: String(data.firstName ?? ''),
+    lastName: String(data.lastName ?? ''),
+    educationLevel: data.educationLevel as EducationLevel,
+    gradeLevel: typeof data.gradeLevel === 'string' ? data.gradeLevel : null,
+    takesAdvancedClasses: typeof data.takesAdvancedClasses === 'boolean' ? data.takesAdvancedClasses : null,
+    age: typeof data.age === 'number' ? data.age : null,
+  };
+}
+
+function personalInfoDocument(uid: string, info: PersonalInfo) {
+  return { uid, ...info, createdAt: serverTimestamp() };
+}
+
+export async function getPersonalInfo(uid: string): Promise<PersonalInfo | null> {
+  const snapshot = await getDoc(doc(db, 'userPrivate', uid));
+  return snapshot.exists() ? personalInfoFromData(snapshot.data()) : null;
+}
+
+export async function savePersonalInfo(uid: string, info: PersonalInfo): Promise<void> {
+  const privateRef = doc(db, 'userPrivate', uid);
+  await runTransaction(db, async (transaction) => {
+    const existing = await transaction.get(privateRef);
+    if (existing.exists()) throw new SocialError('Your personal information is already saved.');
+    transaction.set(privateRef, personalInfoDocument(uid, info));
+  });
+}
+
+export async function createUserProfile(
+  uid: string,
+  username: string,
+  info: PersonalInfo,
+): Promise<UserProfile> {
   const cleanUsername = username.trim();
   if (!validateUsername(cleanUsername)) {
     throw new SocialError('Use 3–20 letters, numbers, or underscores for your username.');
   }
   const usernameLower = cleanUsername.toLowerCase();
   const profileRef = doc(db, 'users', uid);
+  const personalRef = doc(db, 'userPrivate', uid);
 
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const tag = String(Math.floor(Math.random() * 10_000)).padStart(4, '0');
@@ -62,11 +107,12 @@ export async function createUserProfile(uid: string, username: string): Promise<
     const handleRef = doc(db, 'handles', newHandleId);
 
     const profile = await runTransaction(db, async (transaction) => {
-      const [handleSnapshot, profileSnapshot] = await Promise.all([
+      const [handleSnapshot, profileSnapshot, personalSnapshot] = await Promise.all([
         transaction.get(handleRef),
         transaction.get(profileRef),
+        transaction.get(personalRef),
       ]);
-      if (profileSnapshot.exists()) {
+      if (profileSnapshot.exists() || personalSnapshot.exists()) {
         throw new SocialError('Your StudyAthon profile is already set up.');
       }
       if (handleSnapshot.exists()) return null;
@@ -79,6 +125,7 @@ export async function createUserProfile(uid: string, username: string): Promise<
         points: 0,
       };
       transaction.set(profileRef, { ...nextProfile, createdAt: serverTimestamp() });
+      transaction.set(personalRef, personalInfoDocument(uid, info));
       transaction.set(handleRef, { uid });
       return nextProfile;
     });

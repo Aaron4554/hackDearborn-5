@@ -15,7 +15,7 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: 'login',
+  initialRouteName: 'index',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -50,43 +50,28 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, personalInfo, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen label="Opening your study space…" />;
   }
 
   return (
-    // Keyed on the user so signing out cannot leave a session (and its timer)
-    // alive for whoever signs in next on a shared device.
-    <StudyProvider key={user?.uid ?? 'signed-out'}>
-      <ThemeProvider
-        value={{
-          ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
-          // The app paints its own canvas; match it so route transitions and any
-          // unstyled surface do not flash white against #F7F8F5.
-          colors: {
-            ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme).colors,
-            background: colorScheme === 'dark' ? '#141815' : '#F7F8F5',
-          },
-        }}
-      >
-        <Stack>
-          <Stack.Protected guard={!user}>
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="sign-up" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!user && !profile}>
-            <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
-          </Stack.Protected>
-          <Stack.Protected guard={!!user && !!profile}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="study/setup" options={{ headerShown: false }} />
-            <Stack.Screen name="study/quiz" options={{ headerShown: false }} />
-            <Stack.Screen name="study/results" options={{ headerShown: false }} />
-          </Stack.Protected>
-        </Stack>
-      </ThemeProvider>
-    </StudyProvider>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack>
+        {/* The root route decides where to start after Firebase restores auth. */}
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Protected guard={!user}>
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!!user && (!profile || !personalInfo)}>
+          <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!!user && !!profile && !!personalInfo}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack.Protected>
+      </Stack>
+    </ThemeProvider>
   );
 }
