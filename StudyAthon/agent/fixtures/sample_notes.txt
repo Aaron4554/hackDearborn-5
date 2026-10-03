@@ -1,0 +1,35 @@
+Cell Biology - Lecture 3: Mitosis and the Cell Cycle
+
+Mitosis is the process by which a single cell divides to produce two genetically
+identical daughter cells. Before a cell divides, it must replicate its DNA so
+that each daughter cell receives a complete copy of the genome.
+
+The cell cycle has four phases: G1, S, G2, and M. In G1 the cell grows and
+performs normal metabolic functions. During S phase, DNA replication occurs and
+the chromosome number is unchanged, though the DNA content doubles. In G2 the
+cell continues to grow and prepares the machinery needed for division. The M
+phase is mitosis itself, followed by cytokinesis.
+
+Mitosis proceeds through four stages, defined by what happens to the
+chromosomes. In prophase, chromatin condenses into visible chromosomes, the
+nuclear envelope begins to break down, and the mitotic spindle forms from
+centrosomes at opposite poles of the cell. In metaphase, chromosomes align along
+the cell's equator, or metaphase plate, and each chromosome attaches to spindle
+microtubules at its centromere. In anaphase, sister chromatids separate and are
+pulled to opposite poles; this is the point at which the cell is temporarily
+containing four nuclei rather than one. In telophase, a nuclear envelope reforms
+around each set of chromosomes and the chromosomes begin to decondense.
+
+Mitosis is genetically conservative with one important exception: telophase is
+accompanied by cytokinesis, the division of the cytoplasm, producing two
+separate cells. Cytokinesis in animal cells proceeds by cleavage, in which a
+contractile ring of actin filaments and myosin pinches the cell in two.
+
+Common misconceptions worth noting: chromosomes are not the same thing as
+chromatids, since a chromosome consists of two sister chromatids joined at the
+centromere after S phase. Also, DNA content doubles during S phase, but the
+chromosome count does not, because a replicated chromosome is still counted as a
+single chromosome.
+
+Questions about the lecture schedule and the midterm exam are not covered here.
+Office hours are Tuesdays at 3pm in the Evans building.
