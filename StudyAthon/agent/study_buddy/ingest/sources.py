@@ -14,7 +14,7 @@ from google.adk.agents import LlmAgent
 from google.genai import types
 
 from study_buddy.schemas import SourceNotes
-from study_buddy.settings import MODEL
+from study_buddy.settings import resilient_model
 
 INSTRUCTION = """\
 You are the intake step of StudyAthon. The user has supplied raw study material \
@@ -37,7 +37,7 @@ too thin to study from, say so in the first section rather than padding it.
 
 source_normalizer = LlmAgent(
     name="source_normalizer",
-    model=MODEL,
+    model=resilient_model(),
     description="Turns raw notes, PDFs, slides, or recordings into clean study notes.",
     instruction=INSTRUCTION,
     # Must see the real PDF/image parts, not just the instruction.

@@ -14,7 +14,7 @@ from google.genai import types
 
 from study_buddy.ingest.common import CONCEPTS, state_json
 from study_buddy.schemas import QuestionSet
-from study_buddy.settings import MODEL, QUESTIONS_PER_CONCEPT, WRITER_MAX_OUTPUT_TOKENS
+from study_buddy.settings import resilient_model, QUESTIONS_PER_CONCEPT, WRITER_MAX_OUTPUT_TOKENS
 
 
 async def build_instruction(ctx: ReadonlyContext) -> str:
@@ -63,7 +63,7 @@ index 0 every time.
 
 question_writer = LlmAgent(
     name="question_writer",
-    model=MODEL,
+    model=resilient_model(),
     description="Writes grounded multiple-choice questions with plausible distractors.",
     instruction=build_instruction,
     include_contents="none",

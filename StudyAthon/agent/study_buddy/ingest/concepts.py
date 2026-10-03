@@ -14,7 +14,7 @@ from google.genai import types
 
 from study_buddy.ingest.common import SOURCE_NOTES, state_json
 from study_buddy.schemas import ConceptSet
-from study_buddy.settings import MAX_CONCEPTS, MODEL
+from study_buddy.settings import MAX_CONCEPTS, resilient_model
 
 
 async def build_instruction(ctx: ReadonlyContext) -> str:
@@ -47,7 +47,7 @@ cannot state as a checkable claim.
 
 concept_extractor = LlmAgent(
     name="concept_extractor",
-    model=MODEL,
+    model=resilient_model(),
     description="Splits notes into atomic, testable concepts with supporting quotes.",
     instruction=build_instruction,
     include_contents="none",
