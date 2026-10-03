@@ -1,4 +1,4 @@
-import { Link, Stack, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StyleSheet, Pressable } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
