@@ -8,7 +8,7 @@ import { auth } from '@/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsScreen() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -29,7 +29,7 @@ export default function SettingsScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatar}><Ionicons name="person" size={23} color="#477B5B" /></View>
           <View style={styles.profileCopy}>
-            <Text style={styles.profileTitle}>StudyAthon learner</Text>
+            <Text style={styles.profileTitle}>{profile ? `${profile.username}#${profile.tag}` : 'StudyAthon learner'}</Text>
             <Text style={styles.email}>{user?.email ?? 'Signed in'}</Text>
           </View>
           <Feather name="check-circle" size={19} color="#6A9874" />

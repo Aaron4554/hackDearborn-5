@@ -49,7 +49,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
 
   if (isLoading) {
     return <LoadingScreen label="Opening your study space…" />;
@@ -62,7 +62,10 @@ function RootLayoutNav() {
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="sign-up" options={{ headerShown: false }} />
         </Stack.Protected>
-        <Stack.Protected guard={!!user}>
+        <Stack.Protected guard={!!user && !profile}>
+          <Stack.Screen name="profile-setup" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!!user && !!profile}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>

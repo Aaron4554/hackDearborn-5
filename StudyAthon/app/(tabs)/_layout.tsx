@@ -1,12 +1,8 @@
-import { SymbolView } from 'expo-symbols';
-import { Link, Tabs } from 'expo-router';
-import { Platform, Pressable } from 'react-native';
+import { Tabs } from 'expo-router';
 
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { FontAwesome5 } from "@expo/vector-icons";
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 
 
 export default function TabLayout() {
@@ -31,6 +27,13 @@ export default function TabLayout() {
               size={28}
             />
           )
+        }}
+      />
+      <Tabs.Screen
+        name="friends"
+        options={{
+          title: 'Friends',
+          tabBarIcon: ({ color }) => <Ionicons name="people" color={color} size={25} />,
         }}
       />
       <Tabs.Screen

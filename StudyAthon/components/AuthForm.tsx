@@ -16,6 +16,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'fire
 import { Feather, Ionicons } from '@expo/vector-icons';
 
 import { auth } from '@/firebase';
+import { createUserProfile, validateUsername } from '@/services/social';
 
 type AuthFormProps = { mode: 'login' | 'sign-up' };
 
@@ -43,6 +44,7 @@ function firebaseErrorMessage(error: unknown) {
 
 export default function AuthForm({ mode }: AuthFormProps) {
   const isSignUp = mode === 'sign-up';
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -56,6 +58,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
       setError('Enter your email and password to continue.');
       return;
     }
+    if (isSignUp && !validateUsername(username.trim())) {
+      setError('Your username needs 3–20 letters, numbers, or underscores.');
+      return;
+    }
     if (isSignUp && password !== confirmPassword) {
       setError('Your passwords do not match.');
       return;
@@ -64,7 +70,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
     setIsSubmitting(true);
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+        const credential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+        await createUserProfile(credential.user.uid, username.trim());
       } else {
         await signInWithEmailAndPassword(auth, normalizedEmail, password);
       }
@@ -111,6 +118,27 @@ export default function AuthForm({ mode }: AuthFormProps) {
             <Text style={styles.formSubtitle}>
               {isSignUp ? 'Use your email to get started.' : 'Enter your details to continue.'}
             </Text>
+
+            {isSignUp ? (
+              <>
+                <Text style={[styles.inputLabel, styles.firstLabel]}>USERNAME</Text>
+                <View style={styles.inputWrap}>
+                  <Feather name="at-sign" size={17} color="#8A978D" />
+                  <TextInput
+                    value={username}
+                    onChangeText={setUsername}
+                    placeholder="studyfan"
+                    placeholderTextColor="#ABB4AD"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    accessibilityLabel="Username"
+                    returnKeyType="next"
+                    style={styles.input}
+                  />
+                </View>
+                <Text style={styles.helperText}>You’ll get a unique four-digit tag, like studyfan#0427.</Text>
+              </>
+            ) : null}
 
             <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <View style={styles.inputWrap}>
@@ -221,6 +249,8 @@ const styles = StyleSheet.create({
   formTitle: { color: '#2C3B31', fontSize: 17, fontWeight: '800' },
   formSubtitle: { color: '#939D95', fontSize: 11, marginTop: 5, marginBottom: 20 },
   inputLabel: { color: '#89958C', fontSize: 9, fontWeight: '800', letterSpacing: 1.1, marginBottom: 7, marginTop: 14 },
+  firstLabel: { marginTop: 0 },
+  helperText: { color: '#9AA49C', fontSize: 10, marginTop: 7 },
   inputWrap: { minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: '#E5EAE5', backgroundColor: '#FBFCFA', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
   input: { flex: 1, color: '#34433A', fontSize: 13, paddingVertical: 11 },
   error: { color: '#B9574B', fontSize: 11, lineHeight: 16, marginTop: 12 },
