@@ -18,7 +18,7 @@ from google.genai import types
 
 from study_buddy.ingest.common import CONCEPTS, QUESTIONS, state_json
 from study_buddy.schemas import QuestionBank
-from study_buddy.settings import MODEL
+from study_buddy.settings import resilient_model
 
 
 async def build_instruction(ctx: ReadonlyContext) -> str:
@@ -68,7 +68,7 @@ question, so we know what the notes covered but the quiz does not.
 
 grounding_validator = LlmAgent(
     name="grounding_validator",
-    model=MODEL,
+    model=resilient_model(),
     description="Rejects questions that are ungrounded, ambiguous, or malformed.",
     instruction=build_instruction,
     include_contents="none",

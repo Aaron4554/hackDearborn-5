@@ -14,6 +14,7 @@ load_dotenv()
 
 from study_buddy.agent import root_agent
 from study_buddy.ingest.runner import IngestResult, build_parts, run_ingestion
+from study_buddy.resilient import InvalidRequestError
 
 # Inline request bodies are capped so a mistaken multi-file upload cannot push a
 # multi-megabyte payload through the Gemini request. Uploaded study material is
@@ -130,6 +131,10 @@ async def ingest(
 
     try:
         result: IngestResult = await run_ingestion(parts)
+    except InvalidRequestError as error:
+        # Every model rejected the payload, so the upload is the problem.
+        print(f"Ingestion input rejected: {error}")
+        raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as error:
         # Avoid returning provider credentials or internal traces to the client.
         print(f"Ingestion failed: {error}")

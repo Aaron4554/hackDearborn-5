@@ -12,6 +12,24 @@ import os
 # Gemini Developer API, but pinning keeps runs reproducible.
 MODEL = os.getenv("STUDYATHON_MODEL", "gemini-3.8-flash")
 
+# Ordered fallbacks, tried when MODEL returns a capacity error. Every model here
+# was verified to serve requests with an API key; note that `models.list()`
+# advertises some models (gemini-2.5-flash, gemini-3.1-flash) that 404 on
+# generate, so availability must be probed, not assumed.
+MODEL_FALLBACKS = [
+    m.strip()
+    for m in os.getenv(
+        "STUDYATHON_MODEL_FALLBACKS",
+        "gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.1-flash-lite",
+    ).split(",")
+    if m.strip()
+]
+
+# Retry/backoff for transient capacity errors. Four stages x four models at
+# three attempts each is the ceiling on a single ingestion run.
+RETRY_ATTEMPTS = int(os.getenv("STUDYATHON_RETRY_ATTEMPTS", "3"))
+RETRY_BASE_DELAY = float(os.getenv("STUDYATHON_RETRY_BASE_DELAY", "2.0"))
+
 # How many questions to generate per extracted concept.
 QUESTIONS_PER_CONCEPT = int(os.getenv("STUDYATHON_QUESTIONS_PER_CONCEPT", "2"))
 
@@ -24,3 +42,16 @@ MAX_CONCEPTS = int(os.getenv("STUDYATHON_MAX_CONCEPTS", "40"))
 WRITER_MAX_OUTPUT_TOKENS = int(
     os.getenv("STUDYATHON_WRITER_MAX_OUTPUT_TOKENS", "65536")
 )
+
+
+def resilient_model(candidates: list[str] | None = None):
+    """Build the retry-and-fallback Gemini wrapper used by the ingestion stages."""
+    from study_buddy.resilient import ResilientGemini
+
+    # MODEL is usually also the first fallback, so dedupe while preserving order.
+    ordered = list(dict.fromkeys(candidates or [MODEL, *MODEL_FALLBACKS]))
+    return ResilientGemini(
+        candidates=ordered,
+        attempts_per_model=RETRY_ATTEMPTS,
+        base_delay=RETRY_BASE_DELAY,
+    )
