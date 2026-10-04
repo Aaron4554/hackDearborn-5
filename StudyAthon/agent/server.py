@@ -12,6 +12,7 @@ from google.genai import types
 
 load_dotenv()
 
+from study_buddy.flashcards import generate_flashcards
 from study_buddy.agent import root_agent
 from study_buddy.ingest.runner import (
     IngestResult,
@@ -55,6 +56,24 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+
+
+class FlashcardsRequest(BaseModel):
+    topic: str | None = None
+    text: str | None = None
+    count: int = Field(default=8, ge=3, le=20)
+
+
+class FlashcardItemResponse(BaseModel):
+    id: str
+    front: str
+    back: str
+    hint: str = ""
+
+
+class FlashcardsResponse(BaseModel):
+    topic: str
+    cards: list[FlashcardItemResponse]
 
 
 class IngestResponse(BaseModel):
@@ -122,6 +141,41 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # Avoid returning provider credentials or internal traces to the client.
         print(f"ADK request failed: {error}")
         raise HTTPException(status_code=502, detail="The study agent failed to respond.") from error
+
+
+@app.post("/flashcards", response_model=FlashcardsResponse)
+async def flashcards(request: FlashcardsRequest) -> FlashcardsResponse:
+    if not (request.topic or "").strip() and not (request.text or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Please provide either a study topic or text notes to generate flashcards.",
+        )
+    try:
+        result = await generate_flashcards(
+            topic=request.topic,
+            text=request.text,
+            count=request.count,
+        )
+        return FlashcardsResponse(
+            topic=result["topic"],
+            cards=[
+                FlashcardItemResponse(
+                    id=c["id"],
+                    front=c["front"],
+                    back=c["back"],
+                    hint=c.get("hint", ""),
+                )
+                for c in result["cards"]
+            ],
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=422, detail=str(err)) from err
+    except Exception as err:
+        print(f"Flashcard generation failed: {err}")
+        raise HTTPException(
+            status_code=502,
+            detail="Could not generate flashcards at this time. Please try again.",
+        ) from err
 
 
 @app.post("/ingest", response_model=IngestResponse)

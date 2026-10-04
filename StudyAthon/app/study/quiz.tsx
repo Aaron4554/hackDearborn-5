@@ -11,6 +11,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStudy } from '@/contexts/StudyContext';
+import MathText from '@/components/MathText';
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
@@ -122,7 +123,7 @@ export default function StudyQuizScreen() {
           </Text>
         </View>
 
-        <Text style={styles.stem}>{currentQuestion.stem}</Text>
+        <MathText style={styles.stem}>{currentQuestion.stem}</MathText>
 
         <View style={styles.options}>
           {currentQuestion.options.map((option, index) => (
@@ -139,7 +140,7 @@ export default function StudyQuizScreen() {
               <View style={styles.optionLetter}>
                 <Text style={styles.optionLetterText}>{OPTION_LETTERS[index] ?? index + 1}</Text>
               </View>
-              <Text style={styles.optionText}>{option}</Text>
+              <MathText style={styles.optionText}>{option}</MathText>
             </Pressable>
           ))}
         </View>

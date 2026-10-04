@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import {
+  ActivityIndicator,
+  Keyboard,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,7 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -18,18 +21,22 @@ import { chat, describeAgentError } from '@/services/agent';
 // session, a question count, and a timer, so sending it as a chat prompt would
 // quietly drop everything the study loop asks the student to choose.
 const suggestions = [
-  { label: 'Explain a tough topic', to: null },
-  { label: 'Quiz me on my notes', to: '/study/setup' },
-  { label: 'Make a study plan', to: null },
+  'Photosynthesis',
+  'Cellular Respiration',
+  'Newtonian Mechanics',
+  'Calculus Derivatives',
+  'World War II Timeline',
 ];
 
-const futureTools = [
+const tools = [
   {
     icon: 'layers-outline' as const,
     title: 'Flashcards',
-    detail: 'Turn key ideas into quick reviews',
+    detail: 'Turn key ideas into quick active recall reviews',
     color: '#6759E8',
     background: '#F0EEFF',
+    to: '/flashcards' as const,
+    badge: 'NEW',
   },
   {
     icon: 'calendar-outline' as const,
@@ -37,14 +44,53 @@ const futureTools = [
     detail: 'Build a routine that works for you',
     color: '#D47732',
     background: '#FFF2E7',
+    to: null,
+    badge: 'SOON',
+  },
+];
+
+const modes = [
+  {
+    key: 'loop' as const,
+    icon: 'repeat' as const,
+    title: 'Study Loop',
+    subtitle: 'Adaptive quiz & timer',
+    color: '#477B5B',
+    background: '#EDF5EF',
+  },
+  {
+    key: 'flashcards' as const,
+    icon: 'layers-outline' as const,
+    title: 'Flashcards',
+    subtitle: 'Active recall deck',
+    color: '#6759E8',
+    background: '#F0EEFF',
+  },
+  {
+    key: 'notes' as const,
+    icon: 'document-text-outline' as const,
+    title: 'Short Notes',
+    subtitle: 'Quick summary notes',
+    color: '#2A75C7',
+    background: '#EBF6FF',
+  },
+  {
+    key: 'games' as const,
+    icon: 'game-controller-outline' as const,
+    title: 'Study Games',
+    subtitle: 'Memory match & battles',
+    color: '#D47732',
+    background: '#FFF2E7',
   },
 ];
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [prompt, setPrompt] = useState('');
   const [message, setMessage] = useState('');
   const [answer, setAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showModes, setShowModes] = useState(false);
 
   const submitPrompt = async () => {
     if (!prompt.trim()) {
@@ -66,13 +112,78 @@ export default function HomeScreen() {
     }
   };
 
-  const chooseSuggestion = (suggestion: { label: string; to: string | null }) => {
-    if (suggestion.to) {
-      router.push(suggestion.to as '/study/setup');
+  const launchMode = (mode: 'loop' | 'flashcards' | 'notes' | 'games') => {
+    const trimmed = prompt.trim();
+    if (mode === 'notes') {
+      void submitPrompt();
       return;
     }
-    setPrompt(suggestion.label);
+    if (mode === 'loop') {
+      router.push({
+        pathname: '/study/setup',
+        params: trimmed ? { text: trimmed, topic: trimmed } : {},
+      });
+      return;
+    }
+    if (mode === 'flashcards') {
+      router.push({
+        pathname: '/flashcards',
+        params: trimmed ? { topic: trimmed } : {},
+      });
+      return;
+    }
+    if (mode === 'games') {
+      router.push('/(tabs)/games');
+      return;
+    }
+  };
+
+  const chooseSuggestion = (item: string) => {
+    setPrompt(item);
     setMessage('');
+  };
+
+  const startLearning = () => {
+    if (!prompt.trim()) {
+      setMessage('Add a topic or question to get started.');
+      return;
+    }
+    setMessage('');
+    Keyboard.dismiss();
+    setShowModes(true);
+  };
+
+  const closeModes = () => setShowModes(false);
+
+  const renderModeTile = (mode: (typeof modes)[number]) => {
+    const isNotes = mode.key === 'notes';
+    const notesLoading = isNotes && isLoading;
+    return (
+      <Pressable
+        key={mode.key}
+        onPress={() => {
+          setShowModes(false);
+          launchMode(mode.key);
+        }}
+        disabled={notesLoading}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.modeTile, (pressed || notesLoading) && styles.pressed]}>
+        <View style={[styles.modeTileIcon, { backgroundColor: mode.background }]}>
+          <Ionicons name={mode.icon} size={18} color={mode.color} />
+        </View>
+        <View style={styles.modeTileCopy}>
+          <Text style={styles.modeTileTitle}>{mode.title}</Text>
+          <Text style={styles.modeTileSubtitle}>
+            {notesLoading ? 'Generating notes…' : mode.subtitle}
+          </Text>
+        </View>
+        {notesLoading ? (
+          <ActivityIndicator size="small" color={mode.color} />
+        ) : (
+          <Feather name="arrow-up-right" size={15} color={mode.color} />
+        )}
+      </Pressable>
+    );
   };
 
   return (
@@ -94,7 +205,7 @@ export default function HomeScreen() {
         <View style={styles.greeting}>
           <Text style={styles.eyebrow}>YOUR STUDY SPACE</Text>
           <Text style={styles.heading}>What are we{ '\n' }learning today?</Text>
-          <Text style={styles.subtitle}>Big goals start with one good question.</Text>
+          <Text style={styles.subtitle}>Enter any topic, then choose how you want to learn.</Text>
         </View>
 
         <View style={styles.promptCard}>
@@ -110,7 +221,7 @@ export default function HomeScreen() {
               setPrompt(value);
               setMessage('');
             }}
-            placeholder="e.g. Help me understand cellular respiration..."
+            placeholder="e.g. Cellular respiration, World War II, Calculus..."
             placeholderTextColor="#9AA49D"
             multiline
             textAlignVertical="top"
@@ -118,15 +229,15 @@ export default function HomeScreen() {
             style={styles.input}
           />
           {message ? <Text accessibilityLiveRegion="polite" style={styles.error}>{message}</Text> : null}
+
           <View style={styles.promptFooter}>
-            <Text style={styles.promptHint}>Ask anything. Learn at your pace.</Text>
+            <Text style={styles.promptHint}>Pick how you want to learn it.</Text>
             <Pressable
-              onPress={() => void submitPrompt()}
-              disabled={isLoading}
+              onPress={startLearning}
               accessibilityRole="button"
-              style={({ pressed }) => [styles.sendButton, (pressed || isLoading) && styles.pressed]}>
-              <Text style={styles.sendButtonText}>{isLoading ? 'Thinking…' : 'Start learning'}</Text>
-              {!isLoading && <Feather name="arrow-up-right" size={16} color="#FFFFFF" />}
+              style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}>
+              <Text style={styles.sendButtonText}>Start learning</Text>
+              <Feather name="arrow-up-right" size={15} color="#FFFFFF" />
             </Pressable>
           </View>
         </View>
@@ -135,49 +246,26 @@ export default function HomeScreen() {
           <View style={styles.answerCard}>
             <View style={styles.answerHeading}>
               <View style={styles.aiIcon}><Ionicons name="sparkles" size={16} color="#477B5B" /></View>
-              <Text style={styles.promptTitle}>Your study buddy</Text>
+              <Text style={styles.promptTitle}>Your study buddy notes</Text>
             </View>
             <StudyBuddyReply text={answer} />
           </View>
         ) : null}
 
         <View style={styles.suggestionsSection}>
-          <Text style={styles.sectionLabel}>NOT SURE WHERE TO START?</Text>
+          <Text style={styles.sectionLabel}>POPULAR STUDY TOPICS</Text>
           <View style={styles.chips}>
-            {suggestions.map((suggestion) => (
+            {suggestions.map((item) => (
               <Pressable
-                key={suggestion.label}
-                onPress={() => chooseSuggestion(suggestion)}
+                key={item}
+                onPress={() => chooseSuggestion(item)}
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
-                <Text style={styles.chipText}>{suggestion.label}</Text>
+                <Ionicons name="sparkles-outline" size={12} color="#477B5B" />
+                <Text style={styles.chipText}>{item}</Text>
               </Pressable>
             ))}
           </View>
-        </View>
-
-        <View style={styles.loopCard}>
-          <View style={styles.loopHead}>
-            <View style={styles.toolIcon}>
-              <Ionicons name="repeat" size={21} color="#FFFFFF" />
-            </View>
-            <View style={styles.toolCopy}>
-              <Text style={styles.loopTitle}>Study loop</Text>
-              <Text style={styles.loopDetail}>Questions that react to how you answer</Text>
-            </View>
-            <View style={styles.liveBadge}><Text style={styles.liveText}>LIVE</Text></View>
-          </View>
-          <Text style={styles.loopBody}>
-            Drop in your material, pick how many questions you want, and set a timer. Miss one and
-            it comes back reworded. Get them all right and the next set gets harder.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push('/study/setup')}
-            style={({ pressed }) => [styles.loopButton, pressed && styles.loopButtonPressed]}>
-            <Text style={styles.loopButtonText}>Start a study loop</Text>
-            <Feather name="arrow-up-right" size={16} color="#FFFFFF" />
-          </Pressable>
         </View>
 
         <View style={styles.toolsHeading}>
@@ -185,20 +273,51 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>Your study toolkit</Text>
             <Text style={styles.toolsSubtitle}>A little structure goes a long way.</Text>
           </View>
-          <View style={styles.soonBadge}><Text style={styles.soonText}>MORE SOON</Text></View>
         </View>
 
-        {futureTools.map((tool) => (
-          <View key={tool.title} style={styles.toolCard}>
+        {tools.map((tool) => (
+          <Pressable
+            key={tool.title}
+            onPress={() => {
+              if (tool.to) router.push(tool.to);
+            }}
+            disabled={!tool.to}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.toolCard,
+              tool.to && pressed && styles.pressed,
+              !tool.to && { opacity: 0.8 },
+            ]}>
             <View style={[styles.toolIcon, { backgroundColor: tool.background }]}>
               <Ionicons name={tool.icon} size={21} color={tool.color} />
             </View>
             <View style={styles.toolCopy}>
-              <Text style={styles.toolTitle}>{tool.title}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.toolTitle}>{tool.title}</Text>
+                {tool.badge ? (
+                  <View
+                    style={[
+                      styles.badgePill,
+                      tool.badge === 'NEW' ? styles.badgeNew : styles.badgeSoon,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        tool.badge === 'NEW' ? styles.badgeTextNew : styles.badgeTextSoon,
+                      ]}>
+                      {tool.badge}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={styles.toolDetail}>{tool.detail}</Text>
             </View>
-            <Feather name="arrow-up-right" size={17} color="#A2ACA5" />
-          </View>
+            <Feather
+              name="arrow-up-right"
+              size={17}
+              color={tool.to ? '#477B5B' : '#A2ACA5'}
+            />
+          </Pressable>
         ))}
 
         <View style={styles.footerNote}>
@@ -206,6 +325,41 @@ export default function HomeScreen() {
           <Text style={styles.footerText}>Progress, one session at a time.</Text>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showModes}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={closeModes}>
+        <View style={styles.sheetBackdrop}>
+          <Pressable
+            onPress={closeModes}
+            accessibilityRole="button"
+            accessibilityLabel="Close study modes"
+            style={styles.backdropFill}
+          />
+          <View style={[styles.sheet, { paddingBottom: 18 + insets.bottom }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeading}>
+                <Text style={styles.sheetTitle}>Choose your study mode</Text>
+                <Text numberOfLines={1} style={styles.sheetTopic}>
+                  {prompt.trim()}
+                </Text>
+              </View>
+              <Pressable
+                onPress={closeModes}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                style={({ pressed }) => [styles.sheetClose, pressed && styles.pressed]}>
+                <Feather name="x" size={17} color="#477B5B" />
+              </Pressable>
+            </View>
+            <View style={styles.modeGrid}>{modes.map(renderModeTile)}</View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -265,8 +419,42 @@ const styles = StyleSheet.create({
   promptTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 14 },
   aiIcon: { width: 29, height: 29, borderRadius: 10, backgroundColor: '#EDF5EF', alignItems: 'center', justifyContent: 'center' },
   promptTitle: { color: '#29372D', fontSize: 14, fontWeight: '700' },
-  input: { minHeight: 92, color: '#34433A', fontSize: 14, lineHeight: 21, padding: 0 },
+  input: { minHeight: 74, color: '#34433A', fontSize: 14, lineHeight: 21, padding: 0 },
   error: { color: '#B9574B', fontSize: 12, lineHeight: 17, marginTop: 8 },
+  modeGrid: {
+    gap: 8,
+  },
+  modeTile: {
+    backgroundColor: '#FAFBF9',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E7ECE7',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  modeTileIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeTileCopy: {
+    flex: 1,
+  },
+  modeTileTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#29372D',
+  },
+  modeTileSubtitle: {
+    fontSize: 11,
+    color: '#8A958E',
+    marginTop: 2,
+  },
   answerCard: { backgroundColor: '#EFF5EF', borderRadius: 18, padding: 16, marginTop: 13 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
   promptFooter: { borderTopWidth: 1, borderTopColor: '#F0F2EF', paddingTop: 14, marginTop: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -284,6 +472,12 @@ const styles = StyleSheet.create({
   toolsSubtitle: { color: '#929B94', fontSize: 11, marginTop: 4 },
   soonBadge: { backgroundColor: '#F1F0E9', borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6 },
   soonText: { color: '#89866B', fontSize: 8, letterSpacing: 0.8, fontWeight: '800' },
+  badgePill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  badgeNew: { backgroundColor: '#F0EEFF' },
+  badgeSoon: { backgroundColor: '#F1F0E9' },
+  badgeText: { fontSize: 8, fontWeight: '800', letterSpacing: 0.6 },
+  badgeTextNew: { color: '#6759E8' },
+  badgeTextSoon: { color: '#89866B' },
   toolCard: { minHeight: 72, backgroundColor: '#FFFFFF', borderRadius: 17, borderWidth: 1, borderColor: '#E9EDE8', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', marginBottom: 9 },
   toolIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   toolCopy: { flex: 1, marginLeft: 12 },
@@ -292,23 +486,33 @@ const styles = StyleSheet.create({
   footerNote: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, marginTop: 15 },
   footerText: { color: '#92A095', fontSize: 10 },
 
-  loopCard: { backgroundColor: '#477B5B', borderRadius: 22, padding: 18, marginTop: 26 },
-  loopHead: { flexDirection: 'row', alignItems: 'center' },
-  loopTitle: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
-  loopDetail: { color: '#C6DCCC', fontSize: 10, marginTop: 4 },
-  liveBadge: { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6 },
-  liveText: { color: '#FFFFFF', fontSize: 8, fontWeight: '800', letterSpacing: 0.8 },
-  loopBody: { color: '#DCE9DF', fontSize: 13, lineHeight: 20, marginTop: 14 },
-  loopButton: {
-    minHeight: 46,
-    borderRadius: 14,
-    backgroundColor: '#2F4A38',
-    marginTop: 16,
-    flexDirection: 'row',
+  sheetBackdrop: { flex: 1, backgroundColor: 'rgba(28,40,32,0.45)', justifyContent: 'flex-end' },
+  backdropFill: { flex: 1 },
+  sheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 22,
+    paddingTop: 12,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#DDE3DC',
+    marginBottom: 14,
+  },
+  sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  sheetHeading: { flex: 1 },
+  sheetTitle: { color: '#29372D', fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+  sheetTopic: { color: '#8A958E', fontSize: 12, marginTop: 3 },
+  sheetClose: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: '#EDF5EF',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  loopButtonPressed: { backgroundColor: '#263A2D' },
-  loopButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 });

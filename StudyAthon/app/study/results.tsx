@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStudy } from '@/contexts/StudyContext';
+import MathText from '@/components/MathText';
 import type { QuestionOutcome } from '@/services/agent';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -26,6 +27,7 @@ export default function StudyResultsScreen() {
     busy,
     error,
     reveal,
+    nextRound,
     end,
     reset,
   } = useStudy();
@@ -85,9 +87,9 @@ export default function StudyResultsScreen() {
                   return (
                     <View key={result.id} style={styles.recapRow}>
                       <Ionicons name={meta.icon} size={13} color={meta.color} />
-                      <Text numberOfLines={2} style={styles.recapText}>
+                      <MathText numberOfLines={2} style={styles.recapText}>
                         {result.stem}
-                      </Text>
+                      </MathText>
                       <Text style={[styles.recapLabel, { color: meta.color }]}>{meta.label}</Text>
                     </View>
                   );
@@ -131,14 +133,14 @@ export default function StudyResultsScreen() {
             <Text style={styles.cardTitle}>Answers</Text>
             {answers.map((answer) => (
               <View key={answer.id} style={styles.answerBlock}>
-                <Text style={styles.answerStem}>{answer.stem}</Text>
+                <MathText style={styles.answerStem}>{answer.stem}</MathText>
                 <View style={styles.answerPick}>
                   <Ionicons name="checkmark-circle" size={15} color="#477B5B" />
-                  <Text style={styles.answerPickText}>
+                  <MathText style={styles.answerPickText}>
                     {answer.options[answer.correct_index] ?? 'Answer unavailable'}
-                  </Text>
+                  </MathText>
                 </View>
-                <Text style={styles.answerExplanation}>{answer.explanation}</Text>
+                <MathText style={styles.answerExplanation}>{answer.explanation}</MathText>
               </View>
             ))}
           </View>
@@ -180,11 +182,15 @@ export default function StudyResultsScreen() {
             <Pressable
               accessibilityRole="button"
               disabled={busy}
-              onPress={() => router.replace('/study/quiz')}
+              onPress={() => {
+                if (nextRound()) router.replace('/study/quiz');
+              }}
               style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}
             >
               <Text style={styles.primaryText}>
-                {summary?.all_correct ? 'Try the harder set' : `Start round ${iteration + 1}`}
+                {/* `iteration` is already the round waiting behind this recap:
+                    the backend increments before it hands the next set over. */}
+                {summary?.all_correct ? 'Try the harder set' : `Start round ${iteration}`}
               </Text>
               <Feather name="arrow-up-right" size={17} color="#FFFFFF" />
             </Pressable>
