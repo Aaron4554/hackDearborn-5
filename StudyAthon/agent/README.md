@@ -218,7 +218,7 @@ still cut off. Use `seconds_remaining` for display and check `status` on resume.
 ### Cost
 
 One model call per iteration that needs new questions — not one per question.
-Declining the answers costs nothing at all, because unchanged questions are
+Declining the answers costs nothing, because unchanged questions are
 replayed rather than regenerated. See *Free-tier quota* above.
 
 ## Run locally

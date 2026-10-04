@@ -1,5 +1,9 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider as RouterThemeProvider,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { View } from 'react-native';
@@ -7,9 +11,13 @@ import 'react-native-reanimated';
 
 import LoadingScreen from '@/components/LoadingScreen';
 import StreakBadge from '@/components/StreakBadge';
-import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { StudyProvider } from '@/contexts/StudyContext';
+import {
+  ThemeProvider,
+  useTheme,
+  useThemePreference,
+} from '@/contexts/ThemeContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -24,34 +32,29 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  // Nothing blocks first paint, so the splash can go as soon as we mount. An
+  // earlier version awaited a bundled font here via `useFonts`; on web that path
+  // verifies the font with fontfaceobserver, which rejects after 12s when the
+  // face never loads. expo-font only catches that rejection synchronously, so it
+  // escaped as an unhandled rejection and took the whole app down with it. The
+  // app uses no custom font, so there is nothing to wait for.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+    SplashScreen.hideAsync();
+  }, []);
 
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const theme = useTheme();
+  const { resolved } = useThemePreference();
+
   const { user, profile, personalInfo, isLoading } = useAuth();
 
   if (isLoading) {
@@ -62,14 +65,15 @@ function RootLayoutNav() {
     // Keyed on the user so signing out cannot leave a session (and its timer)
     // alive for whoever signs in next on a shared device.
     <StudyProvider key={user?.uid ?? 'signed-out'}>
-      <ThemeProvider
+      <RouterThemeProvider
         value={{
-          ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+          ...(resolved === 'dark' ? DarkTheme : DefaultTheme),
           // The app paints its own canvas; match it so route transitions and any
-          // unstyled surface do not flash white against #F7F8F5.
+          // unstyled surface do not flash white against the page background.
           colors: {
-            ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme).colors,
-            background: colorScheme === 'dark' ? '#141815' : '#F7F8F5',
+            ...(resolved === 'dark' ? DarkTheme : DefaultTheme).colors,
+            background: theme.page,
+            card: theme.page,
           },
         }}
       >
@@ -96,7 +100,7 @@ function RootLayoutNav() {
         </Stack>
         <StreakBadge />
         </View>
-      </ThemeProvider>
+      </RouterThemeProvider>
     </StudyProvider>
   );
 }

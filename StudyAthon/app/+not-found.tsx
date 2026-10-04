@@ -1,9 +1,15 @@
+import { useMemo } from 'react';
 import { Stack, useRouter } from 'expo-router';
-import { StyleSheet, Pressable } from 'react-native';
+import { StyleSheet, Pressable, Text, View } from 'react-native';
 
-import { Text, View } from '@/components/Themed';
+
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 export default function NotFoundScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
 
   const router = useRouter();
 
@@ -21,16 +27,19 @@ export default function NotFoundScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: theme.page,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: theme.textPrimary,
   },
   link: {
     marginTop: 15,
@@ -38,6 +47,8 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 14,
-    color: '#2e78b7',
+    color: theme.coolText,
   },
-});
+
+  });
+}

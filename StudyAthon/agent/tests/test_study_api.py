@@ -45,7 +45,7 @@ _CANNED = IngestResult(
 )
 
 
-async def _fake_ingest(parts, *, user_id="x"):
+async def _fake_ingest(parts, *, user_id="x", learner_profile=None, question_count=None):
     return _CANNED
 
 

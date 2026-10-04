@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,6 +16,8 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'fire
 import { Feather, Ionicons } from '@expo/vector-icons';
 
 import { auth } from '@/firebase';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 type AuthFormProps = { mode: 'login' | 'sign-up' };
 
@@ -42,6 +44,9 @@ function firebaseErrorMessage(error: unknown) {
 }
 
 export default function AuthForm({ mode }: AuthFormProps) {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const isSignUp = mode === 'sign-up';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,7 +92,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
           showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
             <View style={styles.brand}>
-              <View style={styles.brandMark}><Ionicons name="book" size={18} color="#FFFFFF" /></View>
+              <View style={styles.brandMark}><Ionicons name="book" size={18} color={theme.onAccent} /></View>
               <Text style={styles.brandName}>studyathon</Text>
             </View>
             <View style={styles.topNote}><View style={styles.onlineDot} /><Text style={styles.topNoteText}>YOUR STUDY SPACE</Text></View>
@@ -95,7 +100,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
           <View style={styles.hero}>
             <View style={styles.heroIcon}>
-              <Ionicons name={isSignUp ? 'sparkles-outline' : 'book-outline'} size={28} color="#477B5B" />
+              <Ionicons name={isSignUp ? 'sparkles-outline' : 'book-outline'} size={28} color={theme.accentText} />
             </View>
             <Text style={styles.eyebrow}>{isSignUp ? 'START YOUR NEXT CHAPTER' : 'A LITTLE PROGRESS, EVERY DAY'}</Text>
             <Text style={styles.title}>{isSignUp ? 'Create your\nstudy space' : 'Welcome\nback'}</Text>
@@ -114,12 +119,12 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
             <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <View style={styles.inputWrap}>
-              <Feather name="mail" size={17} color="#8A978D" />
+              <Feather name="mail" size={17} color={theme.textMuted} />
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor="#ABB4AD"
+                placeholderTextColor={theme.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -132,12 +137,12 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
             <Text style={styles.inputLabel}>PASSWORD</Text>
             <View style={styles.inputWrap}>
-              <Feather name="lock" size={17} color="#8A978D" />
+              <Feather name="lock" size={17} color={theme.textMuted} />
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 placeholder="At least 6 characters"
-                placeholderTextColor="#ABB4AD"
+                placeholderTextColor={theme.textMuted}
                 secureTextEntry
                 textContentType={isSignUp ? 'newPassword' : 'password'}
                 accessibilityLabel="Password"
@@ -151,12 +156,12 @@ export default function AuthForm({ mode }: AuthFormProps) {
               <>
                 <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
                 <View style={styles.inputWrap}>
-                  <Feather name="check-circle" size={17} color="#8A978D" />
+                  <Feather name="check-circle" size={17} color={theme.textMuted} />
                   <TextInput
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholder="Enter your password again"
-                    placeholderTextColor="#ABB4AD"
+                    placeholderTextColor={theme.textMuted}
                     secureTextEntry
                     textContentType="newPassword"
                     accessibilityLabel="Confirm password"
@@ -175,11 +180,11 @@ export default function AuthForm({ mode }: AuthFormProps) {
               disabled={isSubmitting}
               accessibilityRole="button"
               style={({ pressed }) => [styles.submitButton, (pressed || isSubmitting) && styles.pressed]}>
-              {isSubmitting ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+              {isSubmitting ? <ActivityIndicator size="small" color={theme.onAccent} /> : null}
               <Text style={styles.submitText}>
                 {isSubmitting ? 'Please wait…' : isSignUp ? 'Create my account' : 'Sign in'}
               </Text>
-              {!isSubmitting ? <Feather name="arrow-right" size={17} color="#FFFFFF" /> : null}
+              {!isSubmitting ? <Feather name="arrow-right" size={17} color={theme.onAccent} /> : null}
             </Pressable>
 
             <View style={styles.switchRow}>
@@ -201,34 +206,37 @@ export default function AuthForm({ mode }: AuthFormProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F7F8F5' },
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: theme.page },
   keyboardView: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: 23, paddingBottom: 28 },
   topBar: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brandMark: { width: 31, height: 31, borderRadius: 10, backgroundColor: '#477B5B', alignItems: 'center', justifyContent: 'center' },
-  brandName: { color: '#26352B', fontSize: 16, fontWeight: '800', letterSpacing: -0.5 },
+  brandMark: { width: 31, height: 31, borderRadius: 10, backgroundColor: theme.accentFill, alignItems: 'center', justifyContent: 'center' },
+  brandName: { color: theme.accentText, fontSize: 16, fontWeight: '800', letterSpacing: -0.5 },
   topNote: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#82A889' },
-  topNoteText: { color: '#95A097', fontSize: 8, fontWeight: '800', letterSpacing: 1.1 },
+  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.memoryFill },
+  topNoteText: { color: theme.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1.1 },
   hero: { marginTop: 24, marginBottom: 24 },
-  heroIcon: { width: 52, height: 52, backgroundColor: '#EAF2EB', borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginBottom: 17 },
-  eyebrow: { color: '#6F9176', fontSize: 9, fontWeight: '800', letterSpacing: 1.55, marginBottom: 9 },
-  title: { color: '#26352B', fontSize: 37, lineHeight: 41, letterSpacing: -1.1, fontWeight: '800' },
-  subtitle: { color: '#879189', fontSize: 13, lineHeight: 19, marginTop: 10, maxWidth: 300 },
-  formCard: { borderRadius: 22, padding: 19, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E9EDE8', shadowColor: '#29372D', shadowOpacity: 0.04, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
-  formTitle: { color: '#2C3B31', fontSize: 17, fontWeight: '800' },
-  formSubtitle: { color: '#939D95', fontSize: 11, marginTop: 5, marginBottom: 20 },
-  inputLabel: { color: '#89958C', fontSize: 9, fontWeight: '800', letterSpacing: 1.1, marginBottom: 7, marginTop: 14 },
-  inputWrap: { minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: '#E5EAE5', backgroundColor: '#FBFCFA', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  input: { flex: 1, color: '#34433A', fontSize: 13, paddingVertical: 11 },
-  error: { color: '#B9574B', fontSize: 11, lineHeight: 16, marginTop: 12 },
-  submitButton: { minHeight: 49, borderRadius: 14, marginTop: 21, backgroundColor: '#477B5B', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
-  submitText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  heroIcon: { width: 52, height: 52, backgroundColor: theme.accentSoft, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginBottom: 17 },
+  eyebrow: { color: theme.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1.55, marginBottom: 9 },
+  title: { color: theme.accentText, fontSize: 37, lineHeight: 41, letterSpacing: -1.1, fontWeight: '800' },
+  subtitle: { color: theme.textMuted, fontSize: 13, lineHeight: 19, marginTop: 10, maxWidth: 300 },
+  formCard: { borderRadius: 22, padding: 19, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, shadowColor: '#29372D', shadowOpacity: 0.04, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  formTitle: { color: theme.accentText, fontSize: 17, fontWeight: '800' },
+  formSubtitle: { color: theme.textMuted, fontSize: 13, marginTop: 5, marginBottom: 20 },
+  inputLabel: { color: theme.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1.1, marginBottom: 7, marginTop: 14 },
+  inputWrap: { minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.accentSoft, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  input: { flex: 1, color: theme.textBody, fontSize: 13, paddingVertical: 11 },
+  error: { color: theme.dangerText, fontSize: 13, lineHeight: 16, marginTop: 12 },
+  submitButton: { minHeight: 49, borderRadius: 14, marginTop: 21, backgroundColor: theme.accentFill, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
+  submitText: { color: theme.onAccent, fontSize: 13, fontWeight: '700' },
   pressed: { opacity: 0.75 },
   switchRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', marginTop: 17 },
-  switchText: { color: '#929B94', fontSize: 11 },
-  switchLink: { color: '#477B5B', fontWeight: '800', fontSize: 11 },
-  footer: { color: '#9AA49C', fontSize: 10, textAlign: 'center', marginTop: 22 },
-});
+  switchText: { color: theme.textMuted, fontSize: 13 },
+  switchLink: { color: theme.accentText, fontWeight: '800', fontSize: 13 },
+  footer: { color: theme.textMuted, fontSize: 12, textAlign: 'center', marginTop: 22 },
+
+  });
+}

@@ -343,7 +343,7 @@ export function answerStudyQuestion(
 /**
  * Answer the end-of-iteration question: do you want to see the answers?
  *
- * Declining re-asks the same questions unchanged and costs no quota; accepting
+ * Declining re-asks the same questions unchanged; accepting
  * returns the answers and the next iteration reworded.
  */
 export function revealStudyAnswers(

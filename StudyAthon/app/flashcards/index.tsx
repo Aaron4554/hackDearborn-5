@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -22,6 +22,8 @@ import {
   type Flashcard,
   type FlashcardDeck,
 } from '@/services/agent';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 const POPULAR_TOPICS = [
   'Photosynthesis & Cellular Respiration',
@@ -35,6 +37,9 @@ const POPULAR_TOPICS = [
 const CARD_COUNTS = [5, 8, 12, 15];
 
 export default function FlashcardsScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const params = useLocalSearchParams<{ topic?: string; notes?: string }>();
   const [topic, setTopic] = useState(params.topic || '');
   const [notes, setNotes] = useState(params.notes || '');
@@ -201,7 +206,7 @@ export default function FlashcardsScreen() {
             hitSlop={10}
             onPress={() => router.back()}
             style={styles.backButton}>
-            <Feather name="chevron-left" size={22} color="#29372D" />
+            <Feather name="chevron-left" size={22} color={theme.accentText} />
           </Pressable>
           <Text style={styles.topBarEyebrow}>FLASHCARDS</Text>
           <View style={styles.topBarSpacer} />
@@ -225,7 +230,7 @@ export default function FlashcardsScreen() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardIcon}>
-                  <Ionicons name="sparkles" size={16} color="#477B5B" />
+                  <Ionicons name="sparkles" size={16} color={theme.accentText} />
                 </View>
                 <Text style={styles.cardTitle}>What topic are you studying?</Text>
               </View>
@@ -237,7 +242,7 @@ export default function FlashcardsScreen() {
                   setErrorMessage('');
                 }}
                 placeholder="e.g. Cellular Respiration, Newton's Laws..."
-                placeholderTextColor="#9AA49D"
+                placeholderTextColor={theme.textMuted}
                 style={styles.input}
               />
 
@@ -245,7 +250,7 @@ export default function FlashcardsScreen() {
 
               <View style={styles.cardHeadSecondary}>
                 <View style={styles.cardIcon}>
-                  <Ionicons name="document-text-outline" size={16} color="#477B5B" />
+                  <Ionicons name="document-text-outline" size={16} color={theme.accentText} />
                 </View>
                 <Text style={styles.cardTitle}>Or paste notes / summary (optional)</Text>
               </View>
@@ -257,7 +262,7 @@ export default function FlashcardsScreen() {
                   setErrorMessage('');
                 }}
                 placeholder="Paste key excerpts, equations, or lecture summary..."
-                placeholderTextColor="#9AA49D"
+                placeholderTextColor={theme.textMuted}
                 multiline
                 textAlignVertical="top"
                 style={styles.textarea}
@@ -267,7 +272,7 @@ export default function FlashcardsScreen() {
             <View style={styles.card}>
               <View style={styles.cardHead}>
                 <View style={styles.cardIcon}>
-                  <Ionicons name="layers-outline" size={16} color="#477B5B" />
+                  <Ionicons name="layers-outline" size={16} color={theme.accentText} />
                 </View>
                 <View style={styles.flex}>
                   <Text style={styles.cardTitle}>Deck size</Text>
@@ -298,7 +303,7 @@ export default function FlashcardsScreen() {
 
             {errorMessage ? (
               <View style={styles.errorCard}>
-                <Feather name="alert-circle" size={16} color="#B9574B" />
+                <Feather name="alert-circle" size={16} color={theme.dangerText} />
                 <Text style={styles.errorText}>{errorMessage}</Text>
               </View>
             ) : null}
@@ -314,13 +319,13 @@ export default function FlashcardsScreen() {
               ]}>
               {isLoading ? (
                 <View style={styles.buttonRow}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={theme.onAccent} />
                   <Text style={styles.startButtonText}>Building your deck…</Text>
                 </View>
               ) : (
                 <View style={styles.buttonRow}>
                   <Text style={styles.startButtonText}>Generate flashcards</Text>
-                  <Feather name="arrow-up-right" size={16} color="#FFFFFF" />
+                  <Feather name="arrow-up-right" size={16} color={theme.onAccent} />
                 </View>
               )}
             </Pressable>
@@ -340,7 +345,7 @@ export default function FlashcardsScreen() {
                       styles.chip,
                       pressed && styles.pressed,
                     ]}>
-                    <Ionicons name="sparkles-outline" size={13} color="#477B5B" />
+                    <Ionicons name="sparkles-outline" size={13} color={theme.accentText} />
                     <Text style={styles.chipText}>{item}</Text>
                   </Pressable>
                 ))}
@@ -348,7 +353,7 @@ export default function FlashcardsScreen() {
             </View>
 
             <View style={styles.footerNote}>
-              <Ionicons name="leaf-outline" size={15} color="#7A9A81" />
+              <Ionicons name="leaf-outline" size={15} color={theme.textMuted} />
               <Text style={styles.footerText}>Progress, one session at a time.</Text>
             </View>
           </ScrollView>
@@ -373,7 +378,7 @@ export default function FlashcardsScreen() {
             hitSlop={10}
             onPress={() => setDeck(null)}
             style={styles.backButton}>
-            <Feather name="x" size={20} color="#29372D" />
+            <Feather name="x" size={20} color={theme.accentText} />
           </Pressable>
           <Text style={styles.topBarEyebrow}>DECK COMPLETE</Text>
           <View style={styles.topBarSpacer} />
@@ -392,11 +397,11 @@ export default function FlashcardsScreen() {
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: '#477B5B' }]}>{masteredCount}</Text>
+              <Text style={[styles.statValue, { color: theme.accentText }]}>{masteredCount}</Text>
               <Text style={styles.statLabel}>Mastered</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: '#D47732' }]}>{learningIds.size}</Text>
+              <Text style={[styles.statValue, { color: theme.warmText }]}>{learningIds.size}</Text>
               <Text style={styles.statLabel}>Still learning</Text>
             </View>
             <View style={styles.statCard}>
@@ -414,7 +419,7 @@ export default function FlashcardsScreen() {
                   styles.startButton,
                   pressed && styles.startButtonPressed,
                 ]}>
-                <Ionicons name="repeat" size={17} color="#FFFFFF" />
+                <Ionicons name="repeat" size={17} color={theme.onAccent} />
                 <Text style={styles.startButtonText}>
                   Review missed ({learningIds.size})
                 </Text>
@@ -428,7 +433,7 @@ export default function FlashcardsScreen() {
                 styles.secondaryButton,
                 pressed && styles.pressed,
               ]}>
-              <Ionicons name="refresh" size={16} color="#29372D" />
+              <Ionicons name="refresh" size={16} color={theme.accentText} />
               <Text style={styles.secondaryButtonText}>Restart full deck</Text>
             </Pressable>
 
@@ -458,7 +463,7 @@ export default function FlashcardsScreen() {
           hitSlop={10}
           onPress={() => setDeck(null)}
           style={styles.backButton}>
-          <Feather name="x" size={20} color="#29372D" />
+          <Feather name="x" size={20} color={theme.accentText} />
         </Pressable>
 
         <View style={styles.iterationPill}>
@@ -501,7 +506,7 @@ export default function FlashcardsScreen() {
             ]}>
             <View style={styles.cardBadgeRow}>
               <View style={styles.badgePill}>
-                <Ionicons name="help-circle" size={13} color="#477B5B" />
+                <Ionicons name="help-circle" size={13} color={theme.accentText} />
                 <Text style={styles.badgePillText}>QUESTION</Text>
               </View>
             </View>
@@ -529,7 +534,7 @@ export default function FlashcardsScreen() {
                       setShowHint(true);
                     }}
                     style={styles.hintButton}>
-                    <Ionicons name="bulb-outline" size={14} color="#76857C" />
+                    <Ionicons name="bulb-outline" size={14} color={theme.textMuted} />
                     <Text style={styles.hintButtonText}>Need a hint?</Text>
                   </Pressable>
                 )}
@@ -537,7 +542,7 @@ export default function FlashcardsScreen() {
             ) : null}
 
             <View style={styles.cardFooter}>
-              <Ionicons name="swap-horizontal" size={14} color="#9AA49D" />
+              <Ionicons name="swap-horizontal" size={14} color={theme.textMuted} />
               <Text style={styles.tapToFlipText}>Tap anywhere to flip</Text>
             </View>
           </Animated.View>
@@ -552,8 +557,8 @@ export default function FlashcardsScreen() {
             ]}>
             <View style={styles.cardBadgeRow}>
               <View style={[styles.badgePill, styles.badgePillAnswer]}>
-                <Ionicons name="checkmark-circle" size={13} color="#2F4A38" />
-                <Text style={[styles.badgePillText, { color: '#2F4A38' }]}>
+                <Ionicons name="checkmark-circle" size={13} color={theme.accentText} />
+                <Text style={[styles.badgePillText, { color: theme.accentText }]}>
                   ANSWER & EXPLANATION
                 </Text>
               </View>
@@ -568,7 +573,7 @@ export default function FlashcardsScreen() {
             </ScrollView>
 
             <View style={styles.cardFooter}>
-              <Ionicons name="swap-horizontal" size={14} color="#9AA49D" />
+              <Ionicons name="swap-horizontal" size={14} color={theme.textMuted} />
               <Text style={styles.tapToFlipText}>Tap to flip back</Text>
             </View>
           </Animated.View>
@@ -583,7 +588,7 @@ export default function FlashcardsScreen() {
             styles.learningBtn,
             pressed && styles.pressed,
           ]}>
-          <Ionicons name="refresh-outline" size={18} color="#D47732" />
+          <Ionicons name="refresh-outline" size={18} color={theme.warmText} />
           <Text style={styles.learningBtnText}>Still learning</Text>
         </Pressable>
 
@@ -594,7 +599,7 @@ export default function FlashcardsScreen() {
             styles.masteredBtn,
             pressed && styles.pressed,
           ]}>
-          <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+          <Ionicons name="checkmark" size={18} color={theme.onAccent} />
           <Text style={styles.masteredBtnText}>Got it</Text>
         </Pressable>
       </View>
@@ -602,10 +607,11 @@ export default function FlashcardsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F7F8F5',
+    backgroundColor: theme.page,
   },
   content: {
     paddingHorizontal: 22,
@@ -622,17 +628,17 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   topBarEyebrow: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.7,
-    color: '#6D9176',
+    color: theme.accentText,
   },
   topBarSpacer: {
     width: 36,
@@ -642,31 +648,31 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   eyebrow: {
-    color: '#6D9176',
-    fontSize: 10,
+    color: theme.accentText,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.7,
     marginBottom: 8,
   },
   heading: {
-    color: '#25342A',
+    color: theme.textPrimary,
     fontSize: 32,
     lineHeight: 37,
     letterSpacing: -1.1,
     fontWeight: '800',
   },
   subtitle: {
-    color: '#7D8880',
+    color: theme.textSecondary,
     fontSize: 14,
     marginTop: 8,
     lineHeight: 20,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 22,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     shadowColor: '#26352B',
     shadowOpacity: 0.045,
     shadowRadius: 16,
@@ -691,47 +697,47 @@ const styles = StyleSheet.create({
     width: 29,
     height: 29,
     borderRadius: 10,
-    backgroundColor: '#EDF5EF',
+    backgroundColor: theme.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
-    color: '#29372D',
+    color: theme.accentText,
     fontSize: 14,
     fontWeight: '700',
   },
   cardHint: {
-    color: '#98A19A',
-    fontSize: 11,
+    color: theme.textMuted,
+    fontSize: 13,
     marginTop: 2,
   },
   flex: {
     flex: 1,
   },
   input: {
-    backgroundColor: '#FAFBF9',
+    backgroundColor: theme.accentSoft,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E4EAE4',
+    borderColor: theme.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#29372D',
+    color: theme.accentText,
   },
   textarea: {
-    backgroundColor: '#FAFBF9',
+    backgroundColor: theme.accentSoft,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E4EAE4',
+    borderColor: theme.border,
     paddingHorizontal: 14,
     paddingVertical: 12,
     minHeight: 76,
     fontSize: 14,
-    color: '#29372D',
+    color: theme.accentText,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F2EF',
+    backgroundColor: theme.accentSoft,
     marginVertical: 4,
   },
   presetRow: {
@@ -743,45 +749,45 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#FAFBF9',
+    backgroundColor: theme.accentSoft,
     borderWidth: 1,
-    borderColor: '#E4EAE4',
+    borderColor: theme.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   presetActive: {
-    backgroundColor: '#EDF5EF',
-    borderColor: '#477B5B',
+    backgroundColor: theme.surfaceSoft,
+    borderColor: theme.borderStrong,
   },
   presetText: {
-    color: '#6F7B73',
+    color: theme.textMuted,
     fontSize: 12,
     fontWeight: '600',
   },
   presetTextActive: {
-    color: '#477B5B',
+    color: theme.accentText,
     fontWeight: '700',
   },
   errorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: '#FBF0EE',
+    backgroundColor: theme.dangerSoft,
     borderWidth: 1,
-    borderColor: '#F2D3CF',
+    borderColor: theme.borderStrong,
     padding: 12,
     borderRadius: 14,
     marginBottom: 12,
   },
   errorText: {
-    color: '#B9574B',
+    color: theme.dangerText,
     fontSize: 12,
     flex: 1,
   },
   startButton: {
     minHeight: 46,
     borderRadius: 14,
-    backgroundColor: '#477B5B',
+    backgroundColor: theme.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
@@ -790,10 +796,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   startButtonPressed: {
-    backgroundColor: '#396349',
+    backgroundColor: theme.deepFill,
   },
   startButtonText: {
-    color: '#FFFFFF',
+    color: theme.onAccent,
     fontWeight: '700',
     fontSize: 14,
   },
@@ -807,8 +813,8 @@ const styles = StyleSheet.create({
     marginTop: 26,
   },
   sectionLabel: {
-    color: '#9AA39C',
-    fontSize: 9,
+    color: theme.textMuted,
+    fontSize: 11,
     letterSpacing: 1.4,
     fontWeight: '800',
     marginBottom: 11,
@@ -822,14 +828,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EEF3EE',
+    backgroundColor: theme.accentSoft,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 9,
   },
   chipText: {
-    color: '#58745F',
-    fontSize: 11,
+    color: theme.textMuted,
+    fontSize: 13,
     fontWeight: '600',
   },
   footerNote: {
@@ -840,8 +846,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   footerText: {
-    color: '#92A095',
-    fontSize: 10,
+    color: theme.textMuted,
+    fontSize: 12,
   },
   pressed: {
     opacity: 0.75,
@@ -857,13 +863,13 @@ const styles = StyleSheet.create({
   },
   iterationPill: {
     borderRadius: 12,
-    backgroundColor: '#EDF5EF',
+    backgroundColor: theme.surfaceSoft,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   iterationText: {
-    color: '#477B5B',
-    fontSize: 10,
+    color: theme.accentText,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1,
   },
@@ -872,12 +878,12 @@ const styles = StyleSheet.create({
   },
   topicPillText: {
     fontSize: 12,
-    color: '#8A958E',
+    color: theme.textMuted,
     fontWeight: '600',
   },
   progressBarBg: {
     height: 4,
-    backgroundColor: '#E6ECE6',
+    backgroundColor: theme.accentSoft,
     marginHorizontal: 22,
     borderRadius: 2,
     overflow: 'hidden',
@@ -885,7 +891,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#477B5B',
+    backgroundColor: theme.accentFill,
     borderRadius: 2,
   },
   cardContainer: {
@@ -899,11 +905,11 @@ const styles = StyleSheet.create({
   studyCard: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 24,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#E6ECE6',
+    borderColor: theme.border,
     shadowColor: '#26352B',
     shadowOpacity: 0.06,
     shadowRadius: 18,
@@ -913,11 +919,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   studyCardFront: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
   },
   studyCardBack: {
-    backgroundColor: '#F3F7F3',
-    borderColor: '#D4E4D7',
+    backgroundColor: theme.accentSoft,
+    borderColor: theme.borderStrong,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -933,18 +939,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#EDF5EF',
+    backgroundColor: theme.surfaceSoft,
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 8,
   },
   badgePillAnswer: {
-    backgroundColor: '#E0EDE2',
+    backgroundColor: theme.accentSoft,
   },
   badgePillText: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#477B5B',
+    color: theme.accentText,
     letterSpacing: 0.8,
   },
   cardScroll: {
@@ -955,7 +961,7 @@ const styles = StyleSheet.create({
   cardFrontText: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#25342A',
+    color: theme.textPrimary,
     lineHeight: 28,
     textAlign: 'center',
     letterSpacing: -0.4,
@@ -963,7 +969,7 @@ const styles = StyleSheet.create({
   cardBackText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2F4A38',
+    color: theme.accentText,
     lineHeight: 25,
     textAlign: 'center',
   },
@@ -977,25 +983,25 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#EDF5EF',
+    backgroundColor: theme.surfaceSoft,
     borderRadius: 10,
   },
   hintButtonText: {
-    fontSize: 11,
-    color: '#58745F',
+    fontSize: 13,
+    color: theme.textMuted,
     fontWeight: '700',
   },
   hintBox: {
-    backgroundColor: '#FFF9E8',
+    backgroundColor: theme.warmSoft,
     borderWidth: 1,
-    borderColor: '#F6E4BA',
+    borderColor: theme.borderStrong,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
   hintText: {
     fontSize: 12,
-    color: '#7D6328',
+    color: theme.dangerText,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -1007,8 +1013,8 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   tapToFlipText: {
-    fontSize: 11,
-    color: '#9AA49D',
+    fontSize: 13,
+    color: theme.textMuted,
     fontWeight: '600',
   },
   controlsRow: {
@@ -1022,16 +1028,16 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 46,
     borderRadius: 14,
-    backgroundColor: '#FFF2E7',
+    backgroundColor: theme.warmSoft,
     borderWidth: 1,
-    borderColor: '#F6DEC9',
+    borderColor: theme.borderStrong,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   learningBtnText: {
-    color: '#D47732',
+    color: theme.warmText,
     fontWeight: '700',
     fontSize: 13,
   },
@@ -1039,14 +1045,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 46,
     borderRadius: 14,
-    backgroundColor: '#477B5B',
+    backgroundColor: theme.accentFill,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   masteredBtnText: {
-    color: '#FFFFFF',
+    color: theme.onAccent,
     fontWeight: '700',
     fontSize: 13,
   },
@@ -1055,7 +1061,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#25342A',
+    color: theme.textPrimary,
     letterSpacing: -0.8,
   },
   statsRow: {
@@ -1065,21 +1071,21 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
   },
   statValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#25342A',
+    color: theme.textPrimary,
   },
   statLabel: {
-    fontSize: 10,
-    color: '#8A958E',
+    fontSize: 12,
+    color: theme.textMuted,
     marginTop: 4,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -1091,16 +1097,16 @@ const styles = StyleSheet.create({
   secondaryButton: {
     minHeight: 46,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: '#E4EAE4',
+    borderColor: theme.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   secondaryButtonText: {
-    color: '#29372D',
+    color: theme.accentText,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -1109,8 +1115,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ghostButtonText: {
-    color: '#6D9176',
+    color: theme.accentText,
     fontSize: 13,
     fontWeight: '700',
   },
-});
+
+  });
+}

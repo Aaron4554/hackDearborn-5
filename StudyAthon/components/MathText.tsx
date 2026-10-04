@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TextStyle, StyleProp } from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 const mathSymbols: Record<string, string> = {
   '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\delta': 'δ',
@@ -153,6 +155,9 @@ export default function MathText({
   mathStyle,
   numberOfLines,
 }: MathTextProps) {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   if (!children) return null;
   const parts = parseInlineMath(children);
 
@@ -169,9 +174,12 @@ export default function MathText({
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   inlineMath: {
     fontFamily: 'serif',
     fontWeight: '600',
   },
-});
+
+  });
+}

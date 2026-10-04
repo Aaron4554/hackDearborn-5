@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -11,8 +11,13 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 export default function LoadingScreen({ label = 'Getting things ready…' }: { label?: string }) {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const pageProgress = useSharedValue(0);
 
   useEffect(() => {
@@ -58,31 +63,32 @@ export default function LoadingScreen({ label = 'Getting things ready…' }: { l
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F7F8F5',
+    backgroundColor: theme.page,
   },
   logoMark: {
     width: 38,
     height: 38,
     borderRadius: 13,
-    backgroundColor: '#477B5B',
+    backgroundColor: theme.accentFill,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 30,
   },
-  logoGlyph: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  logoGlyph: { color: theme.onAccent, fontSize: 18, fontWeight: '700' },
   book: { width: 126, height: 86, flexDirection: 'row', position: 'relative' },
   leftPage: {
     width: 61,
     height: 72,
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 5,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E3EAE3',
+    backgroundColor: theme.surface,
+    borderColor: theme.border,
     borderWidth: 1,
     marginTop: 4,
   },
@@ -91,8 +97,8 @@ const styles = StyleSheet.create({
     height: 72,
     borderTopRightRadius: 8,
     borderBottomRightRadius: 5,
-    backgroundColor: '#E9F0E8',
-    borderColor: '#DCE6DB',
+    backgroundColor: theme.accentSoft,
+    borderColor: theme.borderStrong,
     borderWidth: 1,
     marginTop: 4,
   },
@@ -103,7 +109,7 @@ const styles = StyleSheet.create({
     top: 6,
     bottom: 8,
     width: 2,
-    backgroundColor: '#91AE96',
+    backgroundColor: theme.neutralFill,
   },
   flippingPage: {
     position: 'absolute',
@@ -112,8 +118,8 @@ const styles = StyleSheet.create({
     top: 4,
     width: 59,
     height: 73,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#DFE8DF',
+    backgroundColor: theme.surface,
+    borderColor: theme.borderStrong,
     borderWidth: 1,
     borderTopRightRadius: 8,
     borderBottomRightRadius: 5,
@@ -127,10 +133,12 @@ const styles = StyleSheet.create({
     bottom: 4,
     height: 4,
     borderRadius: 3,
-    backgroundColor: '#91AE96',
+    backgroundColor: theme.neutralFill,
   },
-  brand: { color: '#2B3A30', fontSize: 18, fontWeight: '800', marginTop: 24, letterSpacing: -0.4 },
-  label: { color: '#869188', fontSize: 13, marginTop: 7 },
-  progressTrack: { width: 88, height: 3, borderRadius: 2, backgroundColor: '#E5EBE4', marginTop: 22, overflow: 'hidden' },
-  progressFill: { width: 44, height: 3, borderRadius: 2, backgroundColor: '#6D9675' },
-});
+  brand: { color: theme.accentText, fontSize: 18, fontWeight: '800', marginTop: 24, letterSpacing: -0.4 },
+  label: { color: theme.textMuted, fontSize: 13, marginTop: 7 },
+  progressTrack: { width: 88, height: 3, borderRadius: 2, backgroundColor: theme.accentSoft, marginTop: 22, overflow: 'hidden' },
+  progressFill: { width: 44, height: 3, borderRadius: 2, backgroundColor: theme.memoryFill },
+
+  });
+}
