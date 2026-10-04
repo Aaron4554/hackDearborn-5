@@ -102,6 +102,7 @@ export default function HomeScreen() {
   const [showModes, setShowModes] = useState(false);
 
   const submitPrompt = async () => {
+    if (isLoading) return;
     if (!prompt.trim()) {
       setMessage('Add a topic or question to get started.');
       return;
@@ -236,11 +237,8 @@ export default function HomeScreen() {
             blurOnSubmit={true}
             returnKeyType="done"
             onSubmitEditing={() => {
-              if (prompt.trim()) {
-                Keyboard.dismiss();
-                setMessage('');
-                setShowModes(true);
-              }
+              Keyboard.dismiss();
+              void submitPrompt();
             }}
             textAlignVertical="top"
             accessibilityLabel="Your study prompt"
@@ -249,13 +247,20 @@ export default function HomeScreen() {
           {message ? <Text accessibilityLiveRegion="polite" style={styles.error}>{message}</Text> : null}
 
           <View style={styles.promptFooter}>
-            <Text style={styles.promptHint}>Pick how you want to learn it.</Text>
+            <Pressable
+              onPress={submitPrompt}
+              disabled={isLoading}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.secondaryButton, (pressed || isLoading) && styles.pressed]}>
+              <Ionicons name="sparkles-outline" size={15} color={theme.accentText} />
+              <Text style={styles.secondaryButtonText}>Ask</Text>
+            </Pressable>
             <Pressable
               onPress={startLearning}
               accessibilityRole="button"
               style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}>
               <Text style={styles.sendButtonText}>Start learning</Text>
-              <Feather name="arrow-up-right" size={15} color={theme.onAccent} />
+              <Feather name="arrow-up-right" size={18} color={theme.onAccent} />
             </Pressable>
           </View>
         </View>
@@ -476,10 +481,11 @@ function buildStyles(theme: Theme) {
   },
   answerCard: { backgroundColor: theme.accentSoft, borderRadius: 18, padding: 16, marginTop: 13 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
-  promptFooter: { borderTopWidth: 1, borderTopColor: theme.surfaceSoft, paddingTop: 14, marginTop: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  promptHint: { color: theme.textMuted, fontSize: 13, flexShrink: 1 },
-  sendButton: { minHeight: 42, borderRadius: 13, paddingHorizontal: 14, backgroundColor: theme.accentFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  sendButtonText: { color: theme.onAccent, fontWeight: '700', fontSize: 12 },
+  promptFooter: { borderTopWidth: 1, borderTopColor: theme.surfaceSoft, paddingTop: 14, marginTop: 13, flexDirection: 'column', alignItems: 'stretch', gap: 12 },
+  secondaryButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderWidth: 1, borderColor: theme.surfaceSoft },
+  secondaryButtonText: { color: theme.accentText, fontWeight: '800', fontSize: 15 },
+  sendButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.accentFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  sendButtonText: { color: theme.onAccent, fontWeight: '800', fontSize: 15 },
   pressed: { opacity: 0.75 },
   suggestionsSection: { marginTop: 25 },
   sectionLabel: { color: theme.textMuted, fontSize: 11, letterSpacing: 1.4, fontWeight: '800', marginBottom: 11 },
