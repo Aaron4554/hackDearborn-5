@@ -10,6 +10,7 @@ server.
 | --- | --- | --- | --- |
 | `GET /health` | Liveness check. | `200` | — |
 | `POST /chat` | The study tutor. JSON body `{"message": "..."}`. | `200` | `422` empty, `502` model failure |
+| `POST /flashcards` | Topic and/or notes → a flashcard deck. JSON body `{"topic?", "text?", "count?"}`. `count` is 3-20, default 8. | `200` | `422` no topic or text, `502` model failure |
 | `POST /ingest` | Notes/PDF/slides/YouTube → validated MCQ bank. Multipart form. | `200` | `413` too large, `422` bad input, `502` model failure |
 | `POST /study/session` | Material + settings → a playable first iteration. Multipart form. | `200` | `413`, `422`, `502` |
 | `GET /study/session/{id}` | Resume a session after a reconnect. | `200` | `404` unknown |
@@ -108,6 +109,11 @@ makes **4 requests**. That is roughly 5 ingestions per model per day, or ~20 per
 day across the four-model fallback chain. When the whole chain is exhausted,
 `/ingest` returns `502` with the reset time in the server log. Enable billing
 before demoing or repeatedly testing.
+
+`/chat`, `/flashcards`, and the `/study/*` routes each make a single agent run
+rather than four, but they draw on the same per-model budget — so a student
+looping through quizzes can exhaust the quota just as fast as repeated
+ingestion.
 
 ### Without the server
 
