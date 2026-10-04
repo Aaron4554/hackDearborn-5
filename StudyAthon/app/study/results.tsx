@@ -225,7 +225,7 @@ function Stat({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F7F8F5' },
-  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
+  content: { paddingHorizontal: 20, paddingTop: 56, paddingBottom: 20 },
 
   eyebrow: { color: '#6D9176', fontSize: 10, fontWeight: '800', letterSpacing: 1.7 },
   title: {

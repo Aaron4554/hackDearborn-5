@@ -2,9 +2,11 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import 'react-native-reanimated';
 
 import LoadingScreen from '@/components/LoadingScreen';
+import StreakBadge from '@/components/StreakBadge';
 import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { StudyProvider } from '@/contexts/StudyContext';
@@ -71,6 +73,7 @@ function RootLayoutNav() {
           },
         }}
       >
+        <View style={{ flex: 1 }}>
         <Stack>
           {/* The root route decides where to start after Firebase restores auth. */}
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -90,6 +93,8 @@ function RootLayoutNav() {
             <Stack.Screen name="study/results" options={{ headerShown: false }} />
           </Stack.Protected>
         </Stack>
+        <StreakBadge />
+        </View>
       </ThemeProvider>
     </StudyProvider>
   );

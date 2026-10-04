@@ -16,7 +16,7 @@ from study_buddy.agent import root_agent
 from study_buddy.ingest.runner import IngestResult, build_parts, run_ingestion
 from study_buddy.resilient import InvalidRequestError
 from study_buddy.study import session as study_session
-from study_buddy.study.rules import public_views
+from study_buddy.study.rules import clamp_question_count, public_views
 from study_buddy.study.session import SessionError, UnknownSession
 
 # Inline request bodies are capped so a mistaken multi-file upload cannot push a
@@ -220,6 +220,9 @@ async def create_study_session(
     files: list[UploadFile] = File(default_factory=list),
     question_count: int | None = Form(default=None),
     timer_minutes: int | None = Form(default=None),
+    education_level: str | None = Form(default=None),
+    grade_level: str | None = Form(default=None),
+    takes_advanced_classes: bool | None = Form(default=None),
 ) -> dict:
     """Open a study session and return its first iteration.
 
@@ -253,13 +256,28 @@ async def create_study_session(
     # A distinct ADK user per session keeps concurrent study sessions from
     # sharing ingestion session state.
     try:
-        result = await run_ingestion(parts, user_id=f"study-{session_id}")
+        learner_profile = (
+            {
+                "education_level": education_level,
+                "grade_level": grade_level,
+                "takes_advanced_classes": takes_advanced_classes,
+            }
+            if education_level
+            else None
+        )
+        ingest_options = {"user_id": f"study-{session_id}"}
+        if learner_profile is not None:
+            ingest_options["learner_profile"] = learner_profile
+        if question_count is not None:
+            ingest_options["question_count"] = clamp_question_count(question_count)
+        result = await run_ingestion(parts, **ingest_options)
         session = await study_session.create(
             session_id=session_id,
             user_id=f"study-{session_id}",
             approved=result.approved,
             concepts=result.concepts,
             source_notes=result.source_notes,
+            learner_profile=learner_profile,
             requested_count=question_count,
             timer_seconds=timer_minutes * 60 if timer_minutes else None,
         )

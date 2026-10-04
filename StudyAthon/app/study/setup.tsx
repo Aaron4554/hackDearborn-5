@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStudy } from '@/contexts/StudyContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MIN_QUESTIONS = 1;
 const MAX_QUESTIONS = 50;
@@ -37,6 +38,7 @@ const INGEST_STAGES = [
 
 export default function StudySetupScreen() {
   const { start, busy, error } = useStudy();
+  const { personalInfo } = useAuth();
 
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
@@ -61,6 +63,9 @@ export default function StudySetupScreen() {
       urls: url.trim() ? [url.trim()] : [],
       questionCount,
       timerMinutes: timerOn ? timerMinutes : null,
+      educationLevel: personalInfo?.educationLevel,
+      gradeLevel: personalInfo?.gradeLevel,
+      takesAdvancedClasses: personalInfo?.takesAdvancedClasses,
     });
     if (ok) router.replace('/study/quiz');
   };

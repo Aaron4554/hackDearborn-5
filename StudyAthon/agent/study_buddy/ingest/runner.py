@@ -159,10 +159,17 @@ async def run_ingestion(
     parts: list[types.Part],
     *,
     user_id: str = "studyathon-user",
+    learner_profile: dict[str, Any] | None = None,
+    question_count: int | None = None,
 ) -> IngestResult:
     """Run the full pipeline over ``parts`` and collect the results."""
     session = await _session_service.create_session(
-        app_name=APP_NAME, user_id=user_id
+        app_name=APP_NAME,
+        user_id=user_id,
+        state={
+            "learner_profile": learner_profile or {"education_level": "other"},
+            "question_count": question_count,
+        },
     )
 
     transcript: list[str] = []

@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
+import StudyBuddyReply from '@/components/StudyBuddyReply';
 import { chat, describeAgentError } from '@/services/agent';
 
 // Some suggestions are a real route rather than text to prefill: a quiz needs a
@@ -55,7 +56,9 @@ export default function HomeScreen() {
     setMessage('');
     setAnswer('');
     try {
-      setAnswer(await chat(prompt.trim()));
+      const submittedPrompt = prompt.trim();
+      const reply = await chat(submittedPrompt);
+      setAnswer(reply);
     } catch (error) {
       setMessage(describeAgentError(error));
     } finally {
@@ -85,10 +88,7 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.brandName}>studyathon</Text>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Notifications" style={styles.bellButton}>
-            <Feather name="bell" size={20} color="#28332D" />
-            <View style={styles.notificationDot} />
-          </Pressable>
+          <View style={styles.homeStreakSpacer} />
         </View>
 
         <View style={styles.greeting}>
@@ -137,7 +137,7 @@ export default function HomeScreen() {
               <View style={styles.aiIcon}><Ionicons name="sparkles" size={16} color="#477B5B" /></View>
               <Text style={styles.promptTitle}>Your study buddy</Text>
             </View>
-            <Text accessibilityLiveRegion="polite" style={styles.answerText}>{answer}</Text>
+            <StudyBuddyReply text={answer} />
           </View>
         ) : null}
 
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   content: { 
     paddingHorizontal: 22, 
-    paddingBottom: 34 
+    paddingBottom: 124
   },
   topBar: { 
     height: 54, 
@@ -243,25 +243,7 @@ const styles = StyleSheet.create({
     fontWeight: '800', 
     letterSpacing: -0.5 
   },
-  bellButton: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
-    backgroundColor: '#FFFFFF', 
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  },
-  notificationDot: { 
-    position: 'absolute', 
-    top: 9, 
-    right: 10, 
-    width: 7, 
-    height: 7, 
-    borderRadius: 4, 
-    backgroundColor: '#E89769', 
-    borderWidth: 1, 
-    borderColor: '#FFFFFF' 
-  },
+  homeStreakSpacer: { width: 68, height: 40 },
   greeting: { 
     marginTop: 26, 
     marginBottom: 23 
@@ -287,7 +269,6 @@ const styles = StyleSheet.create({
   error: { color: '#B9574B', fontSize: 12, lineHeight: 17, marginTop: 8 },
   answerCard: { backgroundColor: '#EFF5EF', borderRadius: 18, padding: 16, marginTop: 13 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
-  answerText: { color: '#3C5142', fontSize: 14, lineHeight: 21 },
   promptFooter: { borderTopWidth: 1, borderTopColor: '#F0F2EF', paddingTop: 14, marginTop: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   promptHint: { color: '#98A19A', fontSize: 11, flexShrink: 1 },
   sendButton: { minHeight: 42, borderRadius: 13, paddingHorizontal: 14, backgroundColor: '#477B5B', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },

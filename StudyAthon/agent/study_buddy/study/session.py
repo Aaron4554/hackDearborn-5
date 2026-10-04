@@ -68,6 +68,7 @@ class StudySession:
     concepts: list[dict[str, Any]] = field(default_factory=list)
     bank: list[dict[str, Any]] = field(default_factory=list)
     source_notes: dict[str, Any] = field(default_factory=dict)
+    learner_profile: dict[str, Any] = field(default_factory=dict)
     question_count: int = 1
     timer_deadline: float | None = None
     iteration: int = 1
@@ -214,6 +215,7 @@ async def create(
     approved: list[dict[str, Any]],
     concepts: list[dict[str, Any]],
     source_notes: dict[str, Any],
+    learner_profile: dict[str, Any] | None = None,
     requested_count: int | None,
     timer_seconds: int | None,
 ) -> StudySession:
@@ -247,6 +249,7 @@ async def create(
         concepts=concepts,
         bank=approved,
         source_notes=source_notes,
+        learner_profile=learner_profile or {},
         question_count=len(pool),
         questions=pool,
         timer_deadline=(time.time() + timer_seconds) if timer_seconds else None,
@@ -378,6 +381,9 @@ async def _close_iteration(
     # the iteration that just ended, not the one about to start.
     previous_answers = session.answers_payload() if reveal_answers else None
 
+    generation_options = {}
+    if session.learner_profile:
+        generation_options["learner_profile"] = session.learner_profile
     questions = await build_next_iteration(
         plans=plan_next_iteration(
             session.attempts(), reveal_answers=bool(reveal_answers)
@@ -385,6 +391,7 @@ async def _close_iteration(
         questions_by_id={q["id"]: q for q in session.questions if q.get("id")},
         concepts=session.concepts,
         user_id=session.user_id,
+        **generation_options,
     )
 
     if not questions:
