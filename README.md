@@ -55,6 +55,7 @@ App:
 ```sh
 cd StudyAthon
 cp .env.example .env        # set EXPO_PUBLIC_AGENT_API_URL to match the backend
+npm install                 # install node.js dependencies
 npx expo start -c           # restart with -c after editing .env
 ```
 
