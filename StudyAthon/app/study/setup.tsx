@@ -23,7 +23,7 @@ const MAX_QUESTIONS = 50;
 const MIN_MINUTES = 5;
 const MAX_MINUTES = 120;
 
-const COUNT_PRESETS = [5, 10, 20];
+const COUNT_PRESETS = [5, 10, 20, 30, 50];
 
 /**
  * Ingestion is four sequential model calls, so a cold session can take a while.
@@ -141,14 +141,14 @@ export default function StudySetupScreen() {
                 <Ionicons name="help-circle-outline" size={16} color="#477B5B" />
               </View>
               <View style={styles.flex}>
-                <Text style={styles.cardTitle}>Questions this round</Text>
+                <Text style={styles.cardTitle}>Questions per round</Text>
                 <Text style={styles.cardHint}>
                   Between {MIN_QUESTIONS} and {MAX_QUESTIONS}.
                 </Text>
               </View>
             </View>
 
-            <View style={styles.stepperRow}>
+            <View style={styles.stepperGroup}>
               <StepperButton icon="remove" label="Fewer questions" onPress={() => bumpCount(-1)} />
               <View style={styles.stepperValue}>
                 <Text style={styles.stepperNumber}>{questionCount}</Text>
@@ -354,6 +354,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
   },
+  // Count stepper: the pair sits close together and centred, directly above the
+  // presets it drives. `space-between` pushed them to opposite card edges, which
+  // read as two unrelated controls rather than one stepper.
+  stepperGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 16,
+  },
   stepperSpaced: { marginTop: 18 },
   stepperButton: {
     width: 44,
@@ -366,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepperButtonPressed: { backgroundColor: '#E7EDE7' },
-  stepperValue: { alignItems: 'center' },
+  stepperValue: { alignItems: 'center', minWidth: 78 },
   stepperNumber: {
     color: '#25342A',
     fontSize: 30,
@@ -381,11 +391,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
+  // Five presets share the row evenly, so 50 sits the same distance from 30 as
+  // 30 does from 20 instead of trailing off to the right.
   presetRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
   preset: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 14,
     backgroundColor: '#F4F7F3',
   },
   presetActive: { backgroundColor: '#477B5B' },
