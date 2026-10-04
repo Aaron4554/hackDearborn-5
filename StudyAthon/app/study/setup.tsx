@@ -42,7 +42,7 @@ export default function StudySetupScreen() {
   const theme = useTheme();
   const styles = useMemo(() => buildStyles(theme), [theme]);
 
-  const { start, busy, error } = useStudy();
+  const { start, cancelStart, busy, error } = useStudy();
   const { personalInfo } = useAuth();
   const params = useLocalSearchParams<{ topic?: string; text?: string }>();
 
@@ -248,6 +248,9 @@ export default function StudySetupScreen() {
               <Text style={styles.loadingHint}>
                 This runs on the study agent, so it can take up to a minute.
               </Text>
+              <Pressable accessibilityRole="button" onPress={cancelStart} style={styles.cancelButton}>
+                <Text style={styles.cancelButtonText}>Cancel generation</Text>
+              </Pressable>
             </View>
           </View>
         ) : null}
@@ -471,6 +474,8 @@ function buildStyles(theme: Theme) {
   },
   loadingBody: { color: theme.textMuted, fontSize: 13, lineHeight: 21, marginTop: 12 },
   loadingHint: { color: theme.textMuted, fontSize: 13, lineHeight: 16, marginTop: 14 },
+  cancelButton: { marginTop: 7, minHeight: 42, paddingHorizontal: 18, borderRadius: 12, borderWidth: 1, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' },
+  cancelButtonText: { color: theme.accentText, fontSize: 13, fontWeight: '700' },
 
   });
 }

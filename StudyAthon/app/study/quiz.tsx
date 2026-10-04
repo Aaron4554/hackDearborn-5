@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStudy } from '@/contexts/StudyContext';
 import MathText from '@/components/MathText';
+import ExpandableCard from '@/components/ExpandableCard';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Theme } from '@/constants/theme';
 
@@ -128,7 +129,16 @@ export default function StudyQuizScreen() {
           </Text>
         </View>
 
-        <MathText style={styles.stem}>{currentQuestion.stem}</MathText>
+        <ExpandableCard
+          label="Expand question"
+          backgroundColor={theme.surface}
+          borderColor={theme.border}
+          textColor={theme.textPrimary}
+          contentLength={currentQuestion.stem.length}
+          style={styles.stemCard}
+        >
+          <MathText style={styles.stem}>{currentQuestion.stem}</MathText>
+        </ExpandableCard>
 
         <View style={styles.options}>
           {currentQuestion.options.map((option, index) => (
@@ -252,8 +262,9 @@ function buildStyles(theme: Theme) {
     lineHeight: 31,
     fontWeight: '800',
     letterSpacing: -0.6,
-    marginTop: 16,
+    marginTop: 0,
   },
+  stemCard: { marginTop: 16 },
 
   options: { marginTop: 22, gap: 10 },
   option: {
