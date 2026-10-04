@@ -105,7 +105,7 @@ export default function StudyResultsScreen() {
             <Text style={styles.revealTitle}>See how you did?</Text>
             <Text style={styles.revealBody}>
               Showing answers explains the misses and rewrites them for next time. Skipping keeps
-              them exactly as they were, and costs nothing.
+              them exactly as they were.
             </Text>
             <Pressable
               accessibilityRole="button"
