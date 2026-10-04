@@ -41,15 +41,6 @@ function getTools(theme: Theme) {
     to: '/flashcards' as const,
     badge: 'NEW',
   },
-  {
-    icon: 'calendar-outline' as const,
-    title: 'Study planner',
-    detail: 'Build a routine that works for you',
-    color: theme.warmText,
-    background: theme.warmSoft,
-    to: null,
-    badge: 'SOON',
-  },
 ];
 };
 
@@ -482,7 +473,7 @@ function buildStyles(theme: Theme) {
   answerCard: { backgroundColor: theme.accentSoft, borderRadius: 18, padding: 16, marginTop: 13 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
   promptFooter: { borderTopWidth: 1, borderTopColor: theme.surfaceSoft, paddingTop: 14, marginTop: 13, flexDirection: 'column', alignItems: 'stretch', gap: 12 },
-  secondaryButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderWidth: 1, borderColor: theme.surfaceSoft },
+  secondaryButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderWidth: 1, borderColor: theme.border },
   secondaryButtonText: { color: theme.accentText, fontWeight: '800', fontSize: 15 },
   sendButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.accentFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   sendButtonText: { color: theme.onAccent, fontWeight: '800', fontSize: 15 },
