@@ -37,6 +37,12 @@ QUESTIONS_PER_CONCEPT = int(os.getenv("STUDYATHON_QUESTIONS_PER_CONCEPT", "2"))
 # output budget and stops us generating a thousand questions for a textbook.
 MAX_CONCEPTS = int(os.getenv("STUDYATHON_MAX_CONCEPTS", "40"))
 
+# Bounds on how many questions one study iteration may contain. The product
+# spec fixes these at 1 and 50 inclusive. They are env-driven so a demo can be
+# run with a smaller set without touching code.
+MIN_QUESTIONS = int(os.getenv("STUDYATHON_MIN_QUESTIONS", "1"))
+MAX_QUESTIONS = int(os.getenv("STUDYATHON_MAX_QUESTIONS", "50"))
+
 # Output ceiling for the question-writing stage. Left generous because a
 # truncated JSON payload fails schema validation and aborts the run.
 WRITER_MAX_OUTPUT_TOKENS = int(

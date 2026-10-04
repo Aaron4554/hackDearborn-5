@@ -1,7 +1,8 @@
 # StudyAthon ADK agent
 
-This is a small Python backend for the Expo app. The app calls `/chat` and
-`/ingest`; the Google ADK agents and Google API key stay on this server.
+This is a small Python backend for the Expo app. The app calls `/chat`, `/ingest`
+and the `/study/*` loop; the Google ADK agents and Google API key stay on this
+server.
 
 ## Endpoints
 
@@ -10,6 +11,11 @@ This is a small Python backend for the Expo app. The app calls `/chat` and
 | `GET /health` | Liveness check. | `200` | — |
 | `POST /chat` | The study tutor. JSON body `{"message": "..."}`. | `200` | `422` empty, `502` model failure |
 | `POST /ingest` | Notes/PDF/slides/YouTube → validated MCQ bank. Multipart form. | `200` | `413` too large, `422` bad input, `502` model failure |
+| `POST /study/session` | Material + settings → a playable first iteration. Multipart form. | `200` | `413`, `422`, `502` |
+| `GET /study/session/{id}` | Resume a session after a reconnect. | `200` | `404` unknown |
+| `POST /study/answer` | Record one answer; returns what to show next. | `200` | `404` unknown, `409` wrong state, `502` model |
+| `POST /study/reveal` | Answer-reveal decision; returns the next iteration. | `200` | `404`, `409`, `502` |
+| `POST /study/finish` | End a session early. | `200` | `404`, `409` |
 
 ## Note ingestion
 
@@ -119,11 +125,101 @@ images are inlined.
 python -m unittest discover -s tests
 ```
 
-55 tests, no model calls and no network. They cover MIME guessing, YouTube URL
+138 tests, no model calls and no network. They cover MIME guessing, YouTube URL
 detection, state JSON rendering, schema leniency, stage wiring, upload
-validation, and the whole retry/quota classification policy — including that a
-failed run raises rather than returning an empty result. A failure therefore
-points at our code rather than at Gemini. Live runs need a real API key.
+validation, the whole retry/quota classification policy, every branch of the
+study loop's transition rules, the session state machine, and the `/study/*`
+HTTP contract. A failure therefore points at our code rather than at Gemini.
+Both the loop rules and the session generator are stubbed in tests, so the suite
+cannot accidentally spend quota. Live runs need a real API key.
+
+## Study loop
+
+The loop lives on the server, not in the app. The client answers questions and
+renders what it is handed; it never decides what comes next. That keeps the
+rules in one place — a client cannot implement them wrong — and means a session
+survives an app reconnect.
+
+One *iteration* is a full pass over the questions. When it ends:
+
+| How the iteration went | What the next iteration contains |
+| --- | --- |
+| Every answered question correct | A brand-new question per concept, one tier harder |
+| Some correct | Those questions rewritten, same difficulty |
+| Some wrong, answers **declined** | Those questions re-asked **unchanged** |
+| Some wrong, answers **accepted** | Those questions reworded, same difficulty |
+| Never answered | Ignored — dropped, not carried forward |
+
+Difficulty is tracked per question on a three-step ladder (`easy`, `medium`,
+`hard`) and saturates at `hard`: a student who keeps clearing the set keeps
+getting fresh questions at maximum difficulty rather than the loop ending.
+
+### Flow
+
+```
+POST /study/session ──▶ first iteration (drawn from the ingested bank, no model call)
+        │
+        ├─ POST /study/answer ×N ──▶ next question …
+        │
+        ├─ all correct ────────────▶ harder set, loop continues
+        │
+        └─ something wrong ──▶ status "awaiting_reveal"
+                                └─ POST /study/reveal ──▶ answers + next iteration
+
+   timer expires (any request) ──▶ status "finished"
+```
+
+### Opening a session
+
+`POST /study/session` takes the same multipart fields as `/ingest`, plus:
+
+| Field | Meaning |
+| --- | --- |
+| `question_count` | Questions per iteration, clamped to 1–50. Omit to use the whole bank. |
+| `timer_minutes` | Optional. Stored server-side; the countdown is for display only. |
+
+It runs ingestion internally, so one call replaces chaining `/ingest` then
+`/study/*`. The first iteration is sampled from the already-validated bank,
+which is why opening a session costs no model calls beyond ingestion itself.
+
+### Answering
+
+`POST /study/answer` takes `{"session_id", "question_id", "selected_index"}`.
+`selected_index` may be `null`, which records an explicit skip — a skipped
+question is ignored rather than counted wrong.
+
+The response is either the next question, or, on the last question of an
+iteration, a `summary` with:
+
+```json
+{
+  "iteration": 1, "correct": 2, "incorrect": 1, "unanswered": 1,
+  "total": 4, "all_correct": false, "requires_reveal": true,
+  "results": [{ "id": "q3", "stem": "…", "difficulty": "medium",
+                "outcome": "incorrect", "selected_index": 0 }]
+}
+```
+
+When `requires_reveal` is true, call `POST /study/reveal` with
+`{"show_answers": true|false}`. Accepting returns the answers and explanations
+in `answers` alongside the next iteration; declining returns `answers: null`.
+`outcome` is one of `correct`, `incorrect`, `unanswered`.
+
+### Two things the client must not rely on
+
+**Answers are never sent with a question.** `correct_index`, `explanation` and
+`evidence_quote` are stripped from every question that leaves the server — the
+only sanctioned path is `rules.public_view`. Grade answers server-side.
+
+**The timer is server-side.** The deadline is checked on every request, so
+closing the app buys no extra time and a client that ignores the countdown is
+still cut off. Use `seconds_remaining` for display and check `status` on resume.
+
+### Cost
+
+One model call per iteration that needs new questions — not one per question.
+Declining the answers costs nothing at all, because unchanged questions are
+replayed rather than regenerated. See *Free-tier quota* above.
 
 ## Run locally
 

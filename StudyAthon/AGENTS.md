@@ -29,6 +29,39 @@ Run lint and typecheck before declaring any task done.
 - Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
 - Docs: https://docs.expo.dev/router/introduction.md
 
+## The study backend (this app is not self-contained)
+
+The AI lives in a separate FastAPI service under `agent/`. Without it, chat and the study loop do nothing.
+
+```bash
+cd agent && .venv/bin/python -m uvicorn study_buddy.server:app --host 0.0.0.0 --port 8010
+```
+
+Then point the app at it and **restart with `npx expo start -c`**:
+
+```bash
+cp .env.example .env
+```
+
+`EXPO_PUBLIC_AGENT_API_URL` is not an Expo built-in. It is a custom variable this repo uses; Expo inlines `EXPO_PUBLIC_*` into the client bundle at build time, so editing `.env` without the `-c` restart silently keeps the old URL. Never put a secret in it — the backend key lives in `agent/.env`.
+
+| Running the app on | Value |
+| --- | --- |
+| Web / iOS Simulator | `http://localhost:8010` |
+| Android emulator | `http://10.0.2.2:8010` |
+| Physical phone | `http://<your-LAN-IP>:8010`, same Wi-Fi, backend bound to `0.0.0.0` |
+
+The port is `8010` because `8000` is often taken by something else on a dev machine.
+
+### Talking to it
+
+Never call `fetch` from a screen. `services/agent.ts` is the only place that knows the wire format, and it throws `AgentError` with a message already fit to show a student.
+
+- `chat(message)` → the free-form study buddy on the home screen.
+- `createStudySession` / `resumeStudySession` / `answerStudyQuestion` / `revealStudyAnswers` / `finishStudySession` → the study loop, driven by `contexts/StudyContext.tsx` across the `app/study/` routes.
+
+The backend owns every loop rule: what a question becomes next iteration, the timer, and grading. Do not re-derive any of it on the client. In particular questions arrive **without** `correct_index`/`explanation`, and a `null` `selected_index` is a skip that the loop ignores rather than a wrong answer. See `agent/README.md` for the endpoints.
+
 ## Building with EAS
 
 Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
