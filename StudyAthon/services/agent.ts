@@ -84,6 +84,9 @@ export type StudySessionRequest = {
   urls?: string[];
   questionCount?: number;
   timerMinutes?: number | null;
+  educationLevel?: string;
+  gradeLevel?: string | null;
+  takesAdvancedClasses?: boolean | null;
 };
 
 export type FinishResponse = {
@@ -257,6 +260,9 @@ export async function createStudySession(request: StudySessionRequest): Promise<
     form.append('question_count', String(request.questionCount));
   }
   if (request.timerMinutes) form.append('timer_minutes', String(request.timerMinutes));
+  if (request.educationLevel) form.append('education_level', request.educationLevel);
+  if (request.gradeLevel) form.append('grade_level', request.gradeLevel);
+  if (request.takesAdvancedClasses != null) form.append('takes_advanced_classes', String(request.takesAdvancedClasses));
 
   let response: Response;
   try {

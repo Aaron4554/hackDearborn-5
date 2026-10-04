@@ -19,14 +19,57 @@ from study_buddy.settings import resilient_model, QUESTIONS_PER_CONCEPT, WRITER_
 
 async def build_instruction(ctx: ReadonlyContext) -> str:
     concepts = state_json(ctx, CONCEPTS, {"concepts": []})
+    requested_count = ctx.state.get("question_count")
+    learner = ctx.state.get("learner_profile") or {"education_level": "other"}
+    level = learner.get("education_level", "other")
+    grade = learner.get("grade_level")
+    advanced = learner.get("takes_advanced_classes")
+    level_guidance = {
+        "k12": f"K-12 grade {grade or 'unspecified'} student; start at easy difficulty",
+        "high_school": (
+            f"high-school grade {grade or 'unspecified'} student"
+            + (
+                " taking advanced classes; easy-to-medium starting difficulty"
+                if advanced
+                else "; easy starting difficulty"
+            )
+        ),
+        "college": "college student; medium starting difficulty",
+        "university": "university undergraduate student; medium starting difficulty",
+        "graduate": "graduate student; medium-to-hard difficulty only when the source warrants it",
+        "other": "learner with no specified education level; use clear, accessible language",
+    }.get(level, "learner with no specified education level; use clear, accessible language")
+    if requested_count is None:
+        count_instruction = (
+            f"Write exactly {QUESTIONS_PER_CONCEPT} questions for EVERY concept, "
+            f"so each concept's `concept_id` appears {QUESTIONS_PER_CONCEPT} times."
+        )
+    else:
+        count_instruction = (
+            f"Write exactly {requested_count} questions TOTAL across the concepts. "
+            "Spread them across the most important concepts in the supplied source; "
+            "when the requested count is smaller than the number of concepts, choose "
+            "the concepts with the clearest, most testable evidence. Do not duplicate "
+            "questions to reach the count."
+        )
     return f"""\
 You write multiple-choice questions that check real understanding of a student's notes.
+
+LEARNER LEVEL: {level_guidance}.
+Match vocabulary, sentence complexity, assumed background knowledge, and reasoning
+depth to that level. For K-12 and high-school learners, use direct wording and
+single-step questions unless the supplied source clearly teaches more. For college
+and university learners, use course terminology and modest application. For
+graduate learners, use advanced terminology and synthesis only when supported by
+the supplied source. Do not make questions harder merely to sound impressive.
+Keep every question tightly tied to the supplied material: add no outside facts,
+extra topics, or prerequisites absent from the source. Test what the material
+actually says and prefer clear recall or one-step understanding.
 
 CONCEPTS (JSON):
 {concepts}
 
-Write exactly {QUESTIONS_PER_CONCEPT} questions for EVERY concept, so each concept's \
-`concept_id` appears {QUESTIONS_PER_CONCEPT} times.
+{count_instruction}
 
 Each question needs exactly four options and a `correct_index` (0-based) pointing at \
 the right one.
@@ -34,12 +77,13 @@ the right one.
 ## Distractors are where this task is won or lost
 
 A wrong option must be something a student who half-remembered the material would \
-genuinely pick. Draw them from:
+genuinely pick. Draw it from a misconception supported by the concepts/source and \
+appropriate to the learner's level:
 - the classic misconception this topic is known for
 - a neighbouring concept from the same notes, swapped in
 - the right idea with one detail altered (a flipped sign, transposed steps, \
 the wrong axis, the wrong case)
-- a correct fact from an adjacent topic that does not apply here
+- a fact from a neighbouring topic in these same notes that does not apply here
 
 Never write a distractor that is:
 - absurd, insulting, or unrelated to the topic ("purple monkey dishwasher")

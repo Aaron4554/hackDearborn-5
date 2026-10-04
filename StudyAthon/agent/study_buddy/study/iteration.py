@@ -37,6 +37,14 @@ list of directives, one per question from the iteration the student just finishe
 Every directive tells you what to do with that question. Return exactly one \
 question per directive, with the same `id`.
 
+Match vocabulary, sentence complexity, assumed background knowledge, and reasoning
+depth to `learner_profile.education_level` (and grade/advanced-class fields where
+present) in the input. Keep questions tightly grounded in the supplied concepts and
+source; do not add outside facts or extra difficulty. Use direct language and
+single-step reasoning for K-12/high-school students unless their source teaches
+more. Use undergraduate-level terminology for college/university and advanced
+reasoning for graduate learners only when the source supports it.
+
 ## The directives
 
 **rewrite** - the student answered this correctly. Write a DIFFERENT question that \
@@ -107,6 +115,7 @@ def build_payload(
     plans: Sequence[QuestionPlan],
     questions_by_id: Mapping[str, Mapping[str, Any]],
     concepts: Iterable[Mapping[str, Any]] = (),
+    learner_profile: Mapping[str, Any] | None = None,
 ) -> str:
     """Render the directives and their source questions as the agent's input.
 
@@ -140,6 +149,7 @@ def build_payload(
 
     return json.dumps(
         {
+            "learner_profile": dict(learner_profile or {"education_level": "other"}),
             "ladders": list(TIERS),
             "directives": directives,
             "concepts": list(concepts),

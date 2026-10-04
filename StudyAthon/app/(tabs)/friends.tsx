@@ -254,7 +254,7 @@ export default function FriendsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F7F8F5' },
-  content: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 34 },
+  content: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 124 },
   eyebrow: { color: '#6D9176', fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
   title: { color: '#26352B', fontSize: 32, fontWeight: '800', letterSpacing: -0.8, marginTop: 5 },
   subtitle: { color: '#879189', fontSize: 12, marginTop: 5, marginBottom: 19 },

@@ -34,6 +34,7 @@ async def build_next_iteration(
     questions_by_id: Mapping[str, Mapping[str, Any]],
     concepts: Iterable[Mapping[str, Any]] = (),
     user_id: str = "studyathon-user",
+    learner_profile: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Produce the questions for the next iteration, in directive order.
 
@@ -49,7 +50,7 @@ async def build_next_iteration(
     to_generate = [plan for plan in plans if plan.needs_generation]
     generated: dict[str, dict[str, Any]] = {}
     if to_generate:
-        payload = build_payload(to_generate, questions_by_id, concepts)
+        payload = build_payload(to_generate, questions_by_id, concepts, learner_profile)
         for question in await run_iteration_writer(payload, user_id=user_id):
             qid = str(question.get("id", ""))
             if qid:
