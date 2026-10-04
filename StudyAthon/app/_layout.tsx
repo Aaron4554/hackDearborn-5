@@ -1,4 +1,9 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider as RouterThemeProvider,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { View } from 'react-native';
@@ -6,9 +11,13 @@ import 'react-native-reanimated';
 
 import LoadingScreen from '@/components/LoadingScreen';
 import StreakBadge from '@/components/StreakBadge';
-import { useColorScheme } from '@/components/useColorScheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { StudyProvider } from '@/contexts/StudyContext';
+import {
+  ThemeProvider,
+  useTheme,
+  useThemePreference,
+} from '@/contexts/ThemeContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -34,14 +43,18 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const theme = useTheme();
+  const { resolved } = useThemePreference();
+
   const { user, profile, personalInfo, isLoading } = useAuth();
 
   if (isLoading) {
@@ -52,14 +65,15 @@ function RootLayoutNav() {
     // Keyed on the user so signing out cannot leave a session (and its timer)
     // alive for whoever signs in next on a shared device.
     <StudyProvider key={user?.uid ?? 'signed-out'}>
-      <ThemeProvider
+      <RouterThemeProvider
         value={{
-          ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+          ...(resolved === 'dark' ? DarkTheme : DefaultTheme),
           // The app paints its own canvas; match it so route transitions and any
-          // unstyled surface do not flash white against #F7F8F5.
+          // unstyled surface do not flash white against the page background.
           colors: {
-            ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme).colors,
-            background: colorScheme === 'dark' ? '#141815' : '#F7F8F5',
+            ...(resolved === 'dark' ? DarkTheme : DefaultTheme).colors,
+            background: theme.page,
+            card: theme.page,
           },
         }}
       >
@@ -86,7 +100,7 @@ function RootLayoutNav() {
         </Stack>
         <StreakBadge />
         </View>
-      </ThemeProvider>
+      </RouterThemeProvider>
     </StudyProvider>
   );
 }

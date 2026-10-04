@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -12,10 +12,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStudy } from '@/contexts/StudyContext';
 import MathText from '@/components/MathText';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 export default function StudyQuizScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const {
     phase,
     iteration,
@@ -87,7 +92,7 @@ export default function StudyQuizScreen() {
           }}
           style={styles.closeButton}
         >
-          <Feather name="x" size={20} color="#29372D" />
+          <Feather name="x" size={20} color={theme.accentText} />
         </Pressable>
 
         <View style={styles.iterationPill}>
@@ -96,7 +101,7 @@ export default function StudyQuizScreen() {
 
         {secondsRemaining != null ? (
           <View style={[styles.timerPill, runningOut && styles.timerPillUrgent]}>
-            <Ionicons name="timer-outline" size={13} color={runningOut ? '#B9574B' : '#477B5B'} />
+            <Ionicons name="timer-outline" size={13} color={runningOut ? theme.dangerText : theme.accentText} />
             <Text style={[styles.timerText, runningOut && styles.timerTextUrgent]}>
               {formatClock(secondsRemaining)}
             </Text>
@@ -157,7 +162,7 @@ export default function StudyQuizScreen() {
 
         {error ? (
           <View style={styles.errorCard}>
-            <Feather name="alert-circle" size={16} color="#B9574B" />
+            <Feather name="alert-circle" size={16} color={theme.dangerText} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -172,10 +177,11 @@ function formatClock(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F8F5' },
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.page },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { color: '#7D8880', fontSize: 14 },
+  emptyTitle: { color: theme.textSecondary, fontSize: 14 },
 
   header: {
     flexDirection: 'row',
@@ -190,41 +196,41 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iterationPill: {
-    backgroundColor: '#EEF3EE',
+    backgroundColor: theme.accentSoft,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  iterationText: { color: '#58745F', fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
+  iterationText: { color: theme.textMuted, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
   timerPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EEF3EE',
+    backgroundColor: theme.accentSoft,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  timerPillUrgent: { backgroundColor: '#FCEFEC' },
-  timerText: { color: '#477B5B', fontSize: 12, fontWeight: '700' },
-  timerTextUrgent: { color: '#B9574B' },
-  counter: { color: '#9AA39C', fontSize: 11, fontWeight: '600' },
+  timerPillUrgent: { backgroundColor: theme.dangerSoft },
+  timerText: { color: theme.accentText, fontSize: 12, fontWeight: '700' },
+  timerTextUrgent: { color: theme.dangerText },
+  counter: { color: theme.textMuted, fontSize: 13, fontWeight: '600' },
 
   progressTrack: {
     height: 3,
-    backgroundColor: '#E9EDE8',
+    backgroundColor: theme.border,
     marginHorizontal: 20,
     borderRadius: 2,
     overflow: 'hidden',
   },
-  progressFill: { height: 3, backgroundColor: '#477B5B', borderRadius: 2 },
+  progressFill: { height: 3, backgroundColor: theme.accentFill, borderRadius: 2 },
 
   content: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 40 },
   questionMeta: {
@@ -233,15 +239,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   difficultyPill: {
-    backgroundColor: '#FFF2E7',
+    backgroundColor: theme.warmSoft,
     borderRadius: 9,
     paddingHorizontal: 9,
     paddingVertical: 6,
   },
-  difficultyText: { color: '#D47732', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  difficultyText: { color: theme.warmText, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
 
   stem: {
-    color: '#25342A',
+    color: theme.textPrimary,
     fontSize: 23,
     lineHeight: 31,
     fontWeight: '800',
@@ -254,39 +260,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     paddingHorizontal: 15,
     paddingVertical: 16,
   },
-  optionPressed: { backgroundColor: '#EDF5EF', borderColor: '#C8DACB' },
+  optionPressed: { backgroundColor: theme.surfaceSoft, borderColor: theme.borderStrong },
   optionLetter: {
     width: 27,
     height: 27,
     borderRadius: 9,
-    backgroundColor: '#F4F7F3',
+    backgroundColor: theme.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionLetterText: { color: '#58745F', fontSize: 11, fontWeight: '800' },
-  optionText: { flex: 1, color: '#34433A', fontSize: 14, lineHeight: 20 },
+  optionLetterText: { color: theme.textMuted, fontSize: 13, fontWeight: '800' },
+  optionText: { flex: 1, color: theme.textBody, fontSize: 14, lineHeight: 20 },
 
   skipButton: { alignItems: 'center', marginTop: 22, padding: 8 },
-  skipText: { color: '#58745F', fontSize: 13, fontWeight: '700' },
-  skipHint: { color: '#A2ACA5', fontSize: 10, marginTop: 4, textAlign: 'center' },
+  skipText: { color: theme.textMuted, fontSize: 13, fontWeight: '700' },
+  skipHint: { color: theme.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' },
 
   errorCard: {
     flexDirection: 'row',
     gap: 10,
     alignItems: 'flex-start',
-    backgroundColor: '#FCEFEC',
+    backgroundColor: theme.dangerSoft,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3D8D2',
+    borderColor: theme.borderStrong,
     padding: 14,
     marginTop: 20,
   },
-  errorText: { flex: 1, color: '#B9574B', fontSize: 12, lineHeight: 18 },
-});
+  errorText: { flex: 1, color: theme.dangerText, fontSize: 12, lineHeight: 18 },
+
+  });
+}

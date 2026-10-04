@@ -1,12 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { DeviceEventEmitter, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { recordStreakActivity, STREAK_CHANGED_EVENT } from '@/services/streak';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 export default function StreakBadge() {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [days, setDays] = useState(0);
@@ -29,23 +34,24 @@ export default function StreakBadge() {
   return (
     <View pointerEvents="box-none" style={[styles.anchor, { top: insets.top + 5 }]}>
       <View accessible accessibilityLabel={`${days} day study streak`} style={styles.badge}>
-        <Ionicons name="flame" size={17} color="#D56B43" />
+        <Ionicons name="flame" size={17} color={theme.emberText} />
         <Text style={styles.count}>{days}</Text>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   anchor: { position: 'absolute', right: 15, zIndex: 100, elevation: 12 },
   badge: {
     height: 36,
     minWidth: 62,
     paddingHorizontal: 10,
     borderRadius: 18,
-    backgroundColor: '#FFF7EC',
+    backgroundColor: theme.warmSoft,
     borderWidth: 1,
-    borderColor: '#F1E1CA',
+    borderColor: theme.borderStrong,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -55,5 +61,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
-  count: { color: '#855A30', fontSize: 12, fontWeight: '800' },
-});
+  count: { color: theme.dangerText, fontSize: 12, fontWeight: '800' },
+
+  });
+}

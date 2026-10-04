@@ -4,7 +4,9 @@ import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type TabRoute = { key: string; name: string; params?: object };
@@ -15,19 +17,25 @@ type FloatingTabBarProps = {
     navigate: (name: string, params?: object) => void;
   };
 };
-const tabMeta: Record<string, { label: string; icon: IconName; color: string }> = {
-  home: { label: 'Home', icon: 'home-outline', color: '#477B5B' },
-  friends: { label: 'Friends', icon: 'people-outline', color: '#68699B' },
-  games: { label: 'Games', icon: 'game-controller-outline', color: '#C66D3F' },
-  settings: { label: 'Settings', icon: 'settings-outline', color: '#5D7C80' },
-};
+function getTabMeta(theme: Theme): Record<string, { label: string; icon: IconName; color: string }> {
+  return {
+    home: { label: 'Home', icon: 'home-outline', color: theme.dockAccentGreen },
+    friends: { label: 'Friends', icon: 'people-outline', color: theme.dockAccentBlue },
+    games: { label: 'Games', icon: 'game-controller-outline', color: theme.dockAccentAmber },
+    settings: { label: 'Settings', icon: 'settings-outline', color: theme.dockAccentBlue },
+  };
+}
 
 function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps) {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const insets = useSafeAreaInsets();
   const [dockWidth, setDockWidth] = useState(0);
   const indicatorX = useSharedValue(0);
-  const activeColor = tabMeta[state.routes[state.index]?.name]?.color ?? '#477B5B';
-  // onLayout reports the outer width, including the one-pixel border on both
+  const tabMeta = getTabMeta(theme);
+  const activeColor = tabMeta[state.routes[state.index]?.name]?.color ?? theme.dockAccentGreen;
+  // onLayout reports the outer width, including the one-pixel dock border on both
   // sides. The tabs fill the inner width; size the animated highlight to match.
   const segmentWidth = Math.max(0, (dockWidth - 2) / state.routes.length);
 
@@ -53,12 +61,12 @@ function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps)
       <View onLayout={(event) => setDockWidth(event.nativeEvent.layout.width)} style={styles.dock}>
         {segmentWidth > 0 ? <Animated.View pointerEvents="none" style={[styles.slider, indicatorStyle]} /> : null}
         {state.routes.map((route, index) => {
-          const meta = tabMeta[route.name];
+          const meta = getTabMeta(theme)[route.name];
           if (!meta) return null;
           const focused = state.index === index;
           const { options } = descriptors[route.key];
           const label = typeof options.tabBarLabel === 'string' ? options.tabBarLabel : meta.label;
-          const color = focused ? meta.color : '#89958D';
+          const color = focused ? meta.color : theme.dockMuted;
           const onPress = () => {
             if (!focused) navigation.navigate(route.name, route.params);
           };
@@ -85,10 +93,12 @@ function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps)
 }
 
 export default function TabLayout() {
+  const theme = useTheme();
+
   return (
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: '#F7F8F5' } }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.page } }}
     >
       <Tabs.Screen name="home" options={{ title: 'Home' }} />
       <Tabs.Screen name="friends" options={{ title: 'Friends' }} />
@@ -98,7 +108,8 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   dockPosition: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 50 },
   dock: {
     width: '90%',
@@ -107,9 +118,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 7,
     borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: theme.dockSurface,
     borderWidth: 1,
-    borderColor: '#E8ECE7',
+    borderColor: theme.dockBorder,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -129,6 +140,8 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 2 },
   iconWrap: { width: 34, height: 29, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 9, lineHeight: 12, fontWeight: '600' },
+  label: { fontSize: 11, lineHeight: 12, fontWeight: '600' },
   activeLabel: { fontWeight: '800' },
-});
+
+  });
+}

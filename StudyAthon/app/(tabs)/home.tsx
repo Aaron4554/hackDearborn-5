@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Keyboard,
@@ -16,6 +16,8 @@ import { router } from 'expo-router';
 
 import StudyBuddyReply from '@/components/StudyBuddyReply';
 import { chat, describeAgentError } from '@/services/agent';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 // Some suggestions are a real route rather than text to prefill: a quiz needs a
 // session, a question count, and a timer, so sending it as a chat prompt would
@@ -28,13 +30,14 @@ const suggestions = [
   'World War II Timeline',
 ];
 
-const tools = [
+function getTools(theme: Theme) {
+  return [
   {
     icon: 'layers-outline' as const,
     title: 'Flashcards',
     detail: 'Turn key ideas into quick active recall reviews',
-    color: '#6759E8',
-    background: '#F0EEFF',
+    color: theme.violetText,
+    background: theme.violetSoft,
     to: '/flashcards' as const,
     badge: 'NEW',
   },
@@ -42,49 +45,55 @@ const tools = [
     icon: 'calendar-outline' as const,
     title: 'Study planner',
     detail: 'Build a routine that works for you',
-    color: '#D47732',
-    background: '#FFF2E7',
+    color: theme.warmText,
+    background: theme.warmSoft,
     to: null,
     badge: 'SOON',
   },
 ];
+};
 
-const modes = [
+function getModes(theme: Theme) {
+  return [
   {
     key: 'loop' as const,
     icon: 'repeat' as const,
     title: 'Study Loop',
     subtitle: 'Adaptive quiz & timer',
-    color: '#477B5B',
-    background: '#EDF5EF',
+    color: theme.accentText,
+    background: theme.surfaceSoft,
   },
   {
     key: 'flashcards' as const,
     icon: 'layers-outline' as const,
     title: 'Flashcards',
     subtitle: 'Active recall deck',
-    color: '#6759E8',
-    background: '#F0EEFF',
+    color: theme.violetText,
+    background: theme.violetSoft,
   },
   {
     key: 'notes' as const,
     icon: 'document-text-outline' as const,
     title: 'Short Notes',
     subtitle: 'Quick summary notes',
-    color: '#2A75C7',
-    background: '#EBF6FF',
+    color: theme.coolText,
+    background: theme.surfaceSoft,
   },
   {
     key: 'games' as const,
     icon: 'game-controller-outline' as const,
     title: 'Study Games',
     subtitle: 'Memory match & battles',
-    color: '#D47732',
-    background: '#FFF2E7',
+    color: theme.warmText,
+    background: theme.warmSoft,
   },
 ];
+};
 
 export default function HomeScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const insets = useSafeAreaInsets();
   const [prompt, setPrompt] = useState('');
   const [message, setMessage] = useState('');
@@ -155,7 +164,7 @@ export default function HomeScreen() {
 
   const closeModes = () => setShowModes(false);
 
-  const renderModeTile = (mode: (typeof modes)[number]) => {
+  const renderModeTile = (mode: (ReturnType<typeof getModes>)[number]) => {
     const isNotes = mode.key === 'notes';
     const notesLoading = isNotes && isLoading;
     return (
@@ -195,7 +204,7 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           <View style={styles.brand}>
             <View style={styles.brandMark}>
-              <Ionicons name="book" size={18} color="#FFFFFF" />
+              <Ionicons name="book" size={18} color={theme.onAccent} />
             </View>
             <Text style={styles.brandName}>studyathon</Text>
           </View>
@@ -211,7 +220,7 @@ export default function HomeScreen() {
         <View style={styles.promptCard}>
           <View style={styles.promptTitleRow}>
             <View style={styles.aiIcon}>
-              <Ionicons name="sparkles" size={16} color="#477B5B" />
+              <Ionicons name="sparkles" size={16} color={theme.accentText} />
             </View>
             <Text style={styles.promptTitle}>Ask your AI study buddy</Text>
           </View>
@@ -222,8 +231,17 @@ export default function HomeScreen() {
               setMessage('');
             }}
             placeholder="e.g. Cellular respiration, World War II, Calculus..."
-            placeholderTextColor="#9AA49D"
+            placeholderTextColor={theme.textMuted}
             multiline
+            blurOnSubmit={true}
+            returnKeyType="done"
+            onSubmitEditing={() => {
+              if (prompt.trim()) {
+                Keyboard.dismiss();
+                setMessage('');
+                setShowModes(true);
+              }
+            }}
             textAlignVertical="top"
             accessibilityLabel="Your study prompt"
             style={styles.input}
@@ -237,7 +255,7 @@ export default function HomeScreen() {
               accessibilityRole="button"
               style={({ pressed }) => [styles.sendButton, pressed && styles.pressed]}>
               <Text style={styles.sendButtonText}>Start learning</Text>
-              <Feather name="arrow-up-right" size={15} color="#FFFFFF" />
+              <Feather name="arrow-up-right" size={15} color={theme.onAccent} />
             </Pressable>
           </View>
         </View>
@@ -245,7 +263,7 @@ export default function HomeScreen() {
         {answer ? (
           <View style={styles.answerCard}>
             <View style={styles.answerHeading}>
-              <View style={styles.aiIcon}><Ionicons name="sparkles" size={16} color="#477B5B" /></View>
+              <View style={styles.aiIcon}><Ionicons name="sparkles" size={16} color={theme.accentText} /></View>
               <Text style={styles.promptTitle}>Your study buddy notes</Text>
             </View>
             <StudyBuddyReply text={answer} />
@@ -261,7 +279,7 @@ export default function HomeScreen() {
                 onPress={() => chooseSuggestion(item)}
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.chip, pressed && styles.pressed]}>
-                <Ionicons name="sparkles-outline" size={12} color="#477B5B" />
+                <Ionicons name="sparkles-outline" size={12} color={theme.accentText} />
                 <Text style={styles.chipText}>{item}</Text>
               </Pressable>
             ))}
@@ -275,7 +293,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {tools.map((tool) => (
+        {getTools(theme).map((tool) => (
           <Pressable
             key={tool.title}
             onPress={() => {
@@ -315,13 +333,13 @@ export default function HomeScreen() {
             <Feather
               name="arrow-up-right"
               size={17}
-              color={tool.to ? '#477B5B' : '#A2ACA5'}
+              color={tool.to ? theme.accentText : theme.textMuted}
             />
           </Pressable>
         ))}
 
         <View style={styles.footerNote}>
-          <Ionicons name="leaf-outline" size={15} color="#7A9A81" />
+          <Ionicons name="leaf-outline" size={15} color={theme.textMuted} />
           <Text style={styles.footerText}>Progress, one session at a time.</Text>
         </View>
       </ScrollView>
@@ -353,10 +371,10 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Close"
                 style={({ pressed }) => [styles.sheetClose, pressed && styles.pressed]}>
-                <Feather name="x" size={17} color="#477B5B" />
+                <Feather name="x" size={17} color={theme.accentText} />
               </Pressable>
             </View>
-            <View style={styles.modeGrid}>{modes.map(renderModeTile)}</View>
+            <View style={styles.modeGrid}>{getModes(theme).map(renderModeTile)}</View>
           </View>
         </View>
       </Modal>
@@ -364,9 +382,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   safeArea: { flex: 1, 
-    backgroundColor: '#F7F8F5' 
+    backgroundColor: theme.page 
   },
   content: { 
     paddingHorizontal: 22, 
@@ -387,12 +406,12 @@ const styles = StyleSheet.create({
     width: 31, 
     height: 31, 
     borderRadius: 10, 
-    backgroundColor: '#477B5B', 
+    backgroundColor: theme.accentFill, 
     alignItems: 'center', 
     justifyContent: 'center' 
   },
   brandName: { 
-    color: '#26352B', 
+    color: theme.accentText, 
     fontSize: 17, 
     fontWeight: '800', 
     letterSpacing: -0.5 
@@ -403,32 +422,32 @@ const styles = StyleSheet.create({
     marginBottom: 23 
   },
   eyebrow: { 
-    color: '#6D9176', 
-    fontSize: 10, 
+    color: theme.accentText, 
+    fontSize: 12, 
     fontWeight: '800', 
     letterSpacing: 1.7, 
     marginBottom: 11 
   },
   heading: { 
-    color: '#25342A', 
+    color: theme.textPrimary, 
     fontSize: 34, 
     lineHeight: 39, 
     letterSpacing: -1.1, fontWeight: '800' },
-  subtitle: { color: '#7D8880', fontSize: 14, marginTop: 10 },
-  promptCard: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 18, borderWidth: 1, borderColor: '#E9EDE8', shadowColor: '#26352B', shadowOpacity: 0.045, shadowRadius: 16, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
+  subtitle: { color: theme.textSecondary, fontSize: 14, marginTop: 10 },
+  promptCard: { backgroundColor: theme.surface, borderRadius: 22, padding: 18, borderWidth: 1, borderColor: theme.border, shadowColor: '#26352B', shadowOpacity: 0.045, shadowRadius: 16, shadowOffset: { width: 0, height: 7 }, elevation: 2 },
   promptTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 14 },
-  aiIcon: { width: 29, height: 29, borderRadius: 10, backgroundColor: '#EDF5EF', alignItems: 'center', justifyContent: 'center' },
-  promptTitle: { color: '#29372D', fontSize: 14, fontWeight: '700' },
-  input: { minHeight: 74, color: '#34433A', fontSize: 14, lineHeight: 21, padding: 0 },
-  error: { color: '#B9574B', fontSize: 12, lineHeight: 17, marginTop: 8 },
+  aiIcon: { width: 29, height: 29, borderRadius: 10, backgroundColor: theme.surfaceSoft, alignItems: 'center', justifyContent: 'center' },
+  promptTitle: { color: theme.accentText, fontSize: 14, fontWeight: '700' },
+  input: { minHeight: 74, color: theme.textBody, fontSize: 14, lineHeight: 21, padding: 0 },
+  error: { color: theme.dangerText, fontSize: 12, lineHeight: 17, marginTop: 8 },
   modeGrid: {
     gap: 8,
   },
   modeTile: {
-    backgroundColor: '#FAFBF9',
+    backgroundColor: theme.accentSoft,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E7ECE7',
+    borderColor: theme.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
     flexDirection: 'row',
@@ -448,48 +467,48 @@ const styles = StyleSheet.create({
   modeTileTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#29372D',
+    color: theme.accentText,
   },
   modeTileSubtitle: {
-    fontSize: 11,
-    color: '#8A958E',
+    fontSize: 13,
+    color: theme.textMuted,
     marginTop: 2,
   },
-  answerCard: { backgroundColor: '#EFF5EF', borderRadius: 18, padding: 16, marginTop: 13 },
+  answerCard: { backgroundColor: theme.accentSoft, borderRadius: 18, padding: 16, marginTop: 13 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
-  promptFooter: { borderTopWidth: 1, borderTopColor: '#F0F2EF', paddingTop: 14, marginTop: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  promptHint: { color: '#98A19A', fontSize: 11, flexShrink: 1 },
-  sendButton: { minHeight: 42, borderRadius: 13, paddingHorizontal: 14, backgroundColor: '#477B5B', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  sendButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
+  promptFooter: { borderTopWidth: 1, borderTopColor: theme.surfaceSoft, paddingTop: 14, marginTop: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  promptHint: { color: theme.textMuted, fontSize: 13, flexShrink: 1 },
+  sendButton: { minHeight: 42, borderRadius: 13, paddingHorizontal: 14, backgroundColor: theme.accentFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  sendButtonText: { color: theme.onAccent, fontWeight: '700', fontSize: 12 },
   pressed: { opacity: 0.75 },
   suggestionsSection: { marginTop: 25 },
-  sectionLabel: { color: '#9AA39C', fontSize: 9, letterSpacing: 1.4, fontWeight: '800', marginBottom: 11 },
+  sectionLabel: { color: theme.textMuted, fontSize: 11, letterSpacing: 1.4, fontWeight: '800', marginBottom: 11 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { backgroundColor: '#EEF3EE', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9 },
-  chipText: { color: '#58745F', fontSize: 11, fontWeight: '600' },
+  chip: { backgroundColor: theme.accentSoft, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9 },
+  chipText: { color: theme.textMuted, fontSize: 13, fontWeight: '600' },
   toolsHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 30, marginBottom: 13 },
-  sectionTitle: { color: '#29372D', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
-  toolsSubtitle: { color: '#929B94', fontSize: 11, marginTop: 4 },
-  soonBadge: { backgroundColor: '#F1F0E9', borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6 },
-  soonText: { color: '#89866B', fontSize: 8, letterSpacing: 0.8, fontWeight: '800' },
+  sectionTitle: { color: theme.accentText, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  toolsSubtitle: { color: theme.textMuted, fontSize: 13, marginTop: 4 },
+  soonBadge: { backgroundColor: theme.dangerSoft, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 6 },
+  soonText: { color: theme.emberText, fontSize: 11, letterSpacing: 0.8, fontWeight: '800' },
   badgePill: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeNew: { backgroundColor: '#F0EEFF' },
-  badgeSoon: { backgroundColor: '#F1F0E9' },
-  badgeText: { fontSize: 8, fontWeight: '800', letterSpacing: 0.6 },
-  badgeTextNew: { color: '#6759E8' },
-  badgeTextSoon: { color: '#89866B' },
-  toolCard: { minHeight: 72, backgroundColor: '#FFFFFF', borderRadius: 17, borderWidth: 1, borderColor: '#E9EDE8', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', marginBottom: 9 },
+  badgeNew: { backgroundColor: theme.violetSoft },
+  badgeSoon: { backgroundColor: theme.dangerSoft },
+  badgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.6 },
+  badgeTextNew: { color: theme.violetText },
+  badgeTextSoon: { color: theme.emberText },
+  toolCard: { minHeight: 72, backgroundColor: theme.surface, borderRadius: 17, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', marginBottom: 9 },
   toolIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   toolCopy: { flex: 1, marginLeft: 12 },
-  toolTitle: { color: '#334138', fontSize: 13, fontWeight: '700' },
-  toolDetail: { color: '#9AA39C', fontSize: 10, marginTop: 4 },
+  toolTitle: { color: theme.accentText, fontSize: 13, fontWeight: '700' },
+  toolDetail: { color: theme.textMuted, fontSize: 12, marginTop: 4 },
   footerNote: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, marginTop: 15 },
-  footerText: { color: '#92A095', fontSize: 10 },
+  footerText: { color: theme.textMuted, fontSize: 12 },
 
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(28,40,32,0.45)', justifyContent: 'flex-end' },
   backdropFill: { flex: 1 },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 22,
@@ -500,19 +519,21 @@ const styles = StyleSheet.create({
     width: 42,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#DDE3DC',
+    backgroundColor: theme.borderStrong,
     marginBottom: 14,
   },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   sheetHeading: { flex: 1 },
-  sheetTitle: { color: '#29372D', fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
-  sheetTopic: { color: '#8A958E', fontSize: 12, marginTop: 3 },
+  sheetTitle: { color: theme.accentText, fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+  sheetTopic: { color: theme.textMuted, fontSize: 12, marginTop: 3 },
   sheetClose: {
     width: 34,
     height: 34,
     borderRadius: 12,
-    backgroundColor: '#EDF5EF',
+    backgroundColor: theme.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+
+  });
+}

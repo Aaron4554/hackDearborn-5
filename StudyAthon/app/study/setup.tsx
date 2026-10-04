@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStudy } from '@/contexts/StudyContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 const MIN_QUESTIONS = 1;
 const MAX_QUESTIONS = 50;
@@ -37,6 +39,9 @@ const INGEST_STAGES = [
 ];
 
 export default function StudySetupScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const { start, busy, error } = useStudy();
   const { personalInfo } = useAuth();
   const params = useLocalSearchParams<{ topic?: string; text?: string }>();
@@ -85,7 +90,7 @@ export default function StudySetupScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Feather name="chevron-left" size={22} color="#29372D" />
+            <Feather name="chevron-left" size={22} color={theme.accentText} />
           </Pressable>
           <Text style={styles.eyebrow}>STUDY LOOP</Text>
         </View>
@@ -103,7 +108,7 @@ export default function StudySetupScreen() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardIcon}>
-                <Ionicons name="document-text-outline" size={16} color="#477B5B" />
+                <Ionicons name="document-text-outline" size={16} color={theme.accentText} />
               </View>
               <Text style={styles.cardTitle}>Your material</Text>
             </View>
@@ -112,7 +117,7 @@ export default function StudySetupScreen() {
               multiline
               onChangeText={setText}
               placeholder="Paste notes or enter a topic, like human anatomy..."
-              placeholderTextColor="#9AA49D"
+              placeholderTextColor={theme.textMuted}
               style={styles.textarea}
               textAlignVertical="top"
               value={text}
@@ -121,14 +126,14 @@ export default function StudySetupScreen() {
             <View style={styles.divider} />
 
             <View style={styles.linkRow}>
-              <Feather name="link" size={15} color="#9AA39C" />
+              <Feather name="link" size={15} color={theme.textMuted} />
               <TextInput
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
                 onChangeText={setUrl}
                 placeholder="Or a link (optional)"
-                placeholderTextColor="#9AA39C"
+                placeholderTextColor={theme.textMuted}
                 style={styles.linkInput}
                 value={url}
               />
@@ -138,7 +143,7 @@ export default function StudySetupScreen() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardIcon}>
-                <Ionicons name="help-circle-outline" size={16} color="#477B5B" />
+                <Ionicons name="help-circle-outline" size={16} color={theme.accentText} />
               </View>
               <View style={styles.flex}>
                 <Text style={styles.cardTitle}>Questions per round</Text>
@@ -175,7 +180,7 @@ export default function StudySetupScreen() {
           <View style={styles.card}>
             <View style={styles.cardHead}>
               <View style={styles.cardIcon}>
-                <Ionicons name="timer-outline" size={16} color="#477B5B" />
+                <Ionicons name="timer-outline" size={16} color={theme.accentText} />
               </View>
               <View style={styles.flex}>
                 <Text style={styles.cardTitle}>Work on a timer</Text>
@@ -183,8 +188,8 @@ export default function StudySetupScreen() {
               </View>
               <Switch
                 onValueChange={setTimerOn}
-                trackColor={{ false: '#E4E9E4', true: '#B7CFBB' }}
-                thumbColor={timerOn ? '#477B5B' : '#FFFFFF'}
+                trackColor={{ false: theme.border, true: theme.borderStrong }}
+                thumbColor={timerOn ? theme.accentText : theme.onAccent}
                 value={timerOn}
               />
             </View>
@@ -203,7 +208,7 @@ export default function StudySetupScreen() {
 
           {error ? (
             <View style={styles.errorCard}>
-              <Feather name="alert-circle" size={16} color="#B9574B" />
+              <Feather name="alert-circle" size={16} color={theme.dangerText} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
@@ -219,7 +224,7 @@ export default function StudySetupScreen() {
             ]}
           >
             <Text style={styles.startButtonText}>Build my questions</Text>
-            <Feather name="arrow-up-right" size={17} color="#FFFFFF" />
+            <Feather name="arrow-up-right" size={17} color={theme.onAccent} />
           </Pressable>
 
           {!canStart ? (
@@ -230,7 +235,7 @@ export default function StudySetupScreen() {
         {busy ? (
           <View style={styles.overlay}>
             <View style={styles.loadingCard}>
-              <ActivityIndicator color="#477B5B" size="small" />
+              <ActivityIndicator color={theme.accentText} size="small" />
               <Text style={styles.loadingTitle}>Reading your material</Text>
               <Text style={styles.loadingBody}>
                 {INGEST_STAGES.map((stage, index) => (
@@ -260,6 +265,9 @@ function StepperButton({
   label: string;
   onPress: () => void;
 }) {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -268,13 +276,14 @@ function StepperButton({
       onPress={onPress}
       style={({ pressed }) => [styles.stepperButton, pressed && styles.stepperButtonPressed]}
     >
-      <Ionicons name={icon} size={20} color="#29372D" />
+      <Ionicons name={icon} size={20} color={theme.accentText} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F8F5' },
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.page },
   flex: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -288,34 +297,34 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   eyebrow: {
-    color: '#6D9176',
-    fontSize: 10,
+    color: theme.accentText,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.7,
   },
   content: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 40 },
 
   title: {
-    color: '#25342A',
+    color: theme.textPrimary,
     fontSize: 32,
     lineHeight: 37,
     fontWeight: '800',
     letterSpacing: -1,
   },
-  subtitle: { color: '#7D8880', fontSize: 14, lineHeight: 21, marginTop: 10 },
+  subtitle: { color: theme.textSecondary, fontSize: 14, lineHeight: 21, marginTop: 10 },
 
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     padding: 18,
     marginTop: 16,
     shadowColor: '#26352B',
@@ -329,24 +338,24 @@ const styles = StyleSheet.create({
     width: 29,
     height: 29,
     borderRadius: 10,
-    backgroundColor: '#EDF5EF',
+    backgroundColor: theme.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitle: { color: '#29372D', fontSize: 14, fontWeight: '700' },
-  cardHint: { color: '#9AA39C', fontSize: 11, marginTop: 3 },
+  cardTitle: { color: theme.accentText, fontSize: 14, fontWeight: '700' },
+  cardHint: { color: theme.textMuted, fontSize: 13, marginTop: 3 },
 
   textarea: {
     minHeight: 118,
-    color: '#34433A',
+    color: theme.textBody,
     fontSize: 14,
     lineHeight: 21,
     padding: 0,
     marginTop: 14,
   },
-  divider: { height: 1, backgroundColor: '#F0F2EF', marginVertical: 12 },
+  divider: { height: 1, backgroundColor: theme.accentSoft, marginVertical: 12 },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  linkInput: { flex: 1, color: '#34433A', fontSize: 14, padding: 0 },
+  linkInput: { flex: 1, color: theme.textBody, fontSize: 14, padding: 0 },
 
   stepperRow: {
     flexDirection: 'row',
@@ -369,23 +378,23 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 15,
-    backgroundColor: '#F4F7F3',
+    backgroundColor: theme.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepperButtonPressed: { backgroundColor: '#E7EDE7' },
+  stepperButtonPressed: { backgroundColor: theme.accentSoft },
   stepperValue: { alignItems: 'center', minWidth: 78 },
   stepperNumber: {
-    color: '#25342A',
+    color: theme.textPrimary,
     fontSize: 30,
     fontWeight: '800',
     letterSpacing: -0.8,
   },
   stepperUnit: {
-    color: '#9AA39C',
-    fontSize: 10,
+    color: theme.textMuted,
+    fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
@@ -399,39 +408,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderRadius: 14,
-    backgroundColor: '#F4F7F3',
+    backgroundColor: theme.surfaceAlt,
   },
-  presetActive: { backgroundColor: '#477B5B' },
-  presetText: { color: '#7D8880', fontSize: 11, fontWeight: '700' },
-  presetTextActive: { color: '#FFFFFF' },
+  presetActive: { backgroundColor: theme.accentFill },
+  presetText: { color: theme.textSecondary, fontSize: 13, fontWeight: '700' },
+  presetTextActive: { color: theme.onAccent },
 
   errorCard: {
     flexDirection: 'row',
     gap: 10,
     alignItems: 'flex-start',
-    backgroundColor: '#FCEFEC',
+    backgroundColor: theme.dangerSoft,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3D8D2',
+    borderColor: theme.borderStrong,
     padding: 14,
     marginTop: 16,
   },
-  errorText: { flex: 1, color: '#B9574B', fontSize: 12, lineHeight: 18 },
+  errorText: { flex: 1, color: theme.dangerText, fontSize: 12, lineHeight: 18 },
 
   startButton: {
     minHeight: 54,
     borderRadius: 16,
-    backgroundColor: '#477B5B',
+    backgroundColor: theme.accentFill,
     marginTop: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
   },
-  startButtonPressed: { backgroundColor: '#3E6C4E' },
-  startButtonDisabled: { backgroundColor: '#B4C4B8' },
-  startButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
-  footnote: { color: '#98A19A', fontSize: 11, textAlign: 'center', marginTop: 12 },
+  startButtonPressed: { backgroundColor: theme.accentPressed },
+  startButtonDisabled: { backgroundColor: theme.neutralFill },
+  startButtonText: { color: theme.onAccent, fontSize: 15, fontWeight: '800', letterSpacing: -0.2 },
+  footnote: { color: theme.textMuted, fontSize: 13, textAlign: 'center', marginTop: 12 },
 
   overlay: {
     position: 'absolute',
@@ -439,27 +448,29 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(247,248,245,0.94)',
+    backgroundColor: `${theme.page}F0`,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 28,
   },
   loadingCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.surface,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#E9EDE8',
+    borderColor: theme.border,
     padding: 24,
     width: '100%',
     maxWidth: 360,
   },
   loadingTitle: {
-    color: '#25342A',
+    color: theme.textPrimary,
     fontSize: 17,
     fontWeight: '800',
     marginTop: 14,
     letterSpacing: -0.3,
   },
-  loadingBody: { color: '#5D6B62', fontSize: 13, lineHeight: 21, marginTop: 12 },
-  loadingHint: { color: '#9AA39C', fontSize: 11, lineHeight: 16, marginTop: 14 },
-});
+  loadingBody: { color: theme.textMuted, fontSize: 13, lineHeight: 21, marginTop: 12 },
+  loadingHint: { color: theme.textMuted, fontSize: 13, lineHeight: 16, marginTop: 14 },
+
+  });
+}

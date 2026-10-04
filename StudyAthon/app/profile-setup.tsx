@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -22,6 +22,8 @@ import {
   type EducationLevel,
   type PersonalInfo,
 } from '@/services/social';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 const educationOptions: { value: EducationLevel; label: string }[] = [
   { value: 'k12', label: 'K–12' },
@@ -54,6 +56,9 @@ const emptyPersonalInfo: PersonalInfo = {
 };
 
 export default function ProfileSetupScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   const { user, profile, personalInfo } = useAuth();
   const [continued, setContinued] = useState(false);
   const step = profile || continued ? 'personal' : 'username';
@@ -139,7 +144,7 @@ export default function ProfileSetupScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={styles.brand}>
-            <View style={styles.brandMark}><Ionicons name="book" size={18} color="#FFFFFF" /></View>
+            <View style={styles.brandMark}><Ionicons name="book" size={18} color={theme.onAccent} /></View>
             <Text style={styles.brandName}>studyathon</Text>
           </View>
 
@@ -149,17 +154,17 @@ export default function ProfileSetupScreen() {
           </View>
           {step === 'username' ? (
             <>
-              <View style={styles.heroIcon}><Ionicons name="person-add-outline" size={27} color="#477B5B" /></View>
+              <View style={styles.heroIcon}><Ionicons name="person-add-outline" size={27} color={theme.accentText} /></View>
               <Text style={styles.title}>Choose your{ '\n' }study username</Text>
               <Text style={styles.subtitle}>Your username and unique four-digit tag help friends find you.</Text>
               <Text style={styles.inputLabel}>USERNAME</Text>
               <View style={styles.inputWrap}>
-                <Feather name="at-sign" size={17} color="#8A978D" />
+                <Feather name="at-sign" size={17} color={theme.textMuted} />
                 <TextInput
                   value={username}
                   onChangeText={setUsername}
                   placeholder="studyfan"
-                  placeholderTextColor="#ABB4AD"
+                  placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
                   accessibilityLabel="Username"
@@ -170,12 +175,12 @@ export default function ProfileSetupScreen() {
               {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
               <Pressable onPress={continueToPersonalInfo} accessibilityRole="button" style={styles.button}>
                 <Text style={styles.buttonText}>Continue</Text>
-                <Feather name="arrow-right" size={17} color="#FFFFFF" />
+                <Feather name="arrow-right" size={17} color={theme.onAccent} />
               </Pressable>
             </>
           ) : (
             <>
-              <View style={styles.heroIcon}><Ionicons name="school-outline" size={27} color="#477B5B" /></View>
+              <View style={styles.heroIcon}><Ionicons name="school-outline" size={27} color={theme.accentText} /></View>
               <Text style={styles.title}>Make your study{ '\n' }space yours</Text>
               <Text style={styles.subtitle}>These details help us tailor study support. Age is optional.</Text>
 
@@ -184,7 +189,7 @@ export default function ProfileSetupScreen() {
                 value={details.firstName}
                 onChangeText={(firstName) => updateDetails({ firstName })}
                 placeholder="First name"
-                placeholderTextColor="#ABB4AD"
+                placeholderTextColor={theme.textMuted}
                 autoCapitalize="words"
                 autoCorrect={false}
                 accessibilityLabel="First name"
@@ -195,7 +200,7 @@ export default function ProfileSetupScreen() {
                 value={details.lastName}
                 onChangeText={(lastName) => updateDetails({ lastName })}
                 placeholder="Last name"
-                placeholderTextColor="#ABB4AD"
+                placeholderTextColor={theme.textMuted}
                 autoCapitalize="words"
                 autoCorrect={false}
                 accessibilityLabel="Last name"
@@ -252,7 +257,7 @@ export default function ProfileSetupScreen() {
                   setError('');
                 }}
                 placeholder="Skip if you prefer"
-                placeholderTextColor="#ABB4AD"
+                placeholderTextColor={theme.textMuted}
                 keyboardType="number-pad"
                 accessibilityLabel="Age, optional"
                 style={styles.textField}
@@ -263,7 +268,7 @@ export default function ProfileSetupScreen() {
               <View style={styles.actions}>
                 {!profile ? (
                   <Pressable onPress={() => { setError(''); setContinued(false); }} style={styles.backButton}>
-                    <Feather name="arrow-left" size={16} color="#477B5B" />
+                    <Feather name="arrow-left" size={16} color={theme.accentText} />
                     <Text style={styles.backText}>Back</Text>
                   </Pressable>
                 ) : null}
@@ -272,9 +277,9 @@ export default function ProfileSetupScreen() {
                   disabled={isSaving}
                   accessibilityRole="button"
                   style={({ pressed }) => [styles.button, styles.saveButton, (pressed || isSaving) && styles.pressed]}>
-                  {isSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : null}
+                  {isSaving ? <ActivityIndicator size="small" color={theme.onAccent} /> : null}
                   <Text style={styles.buttonText}>{isSaving ? 'Saving…' : 'Save my details'}</Text>
-                  {!isSaving ? <Feather name="arrow-right" size={17} color="#FFFFFF" /> : null}
+                  {!isSaving ? <Feather name="arrow-right" size={17} color={theme.onAccent} /> : null}
                 </Pressable>
               </View>
             </>
@@ -286,6 +291,9 @@ export default function ProfileSetupScreen() {
 }
 
 function OptionChip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   return (
     <Pressable
       onPress={onPress}
@@ -297,36 +305,39 @@ function OptionChip({ label, selected, onPress }: { label: string; selected: boo
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: '#F7F8F5' },
+  safeArea: { flex: 1, backgroundColor: theme.page },
   content: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: 62, paddingBottom: 34 },
   brand: { position: 'absolute', top: 13, left: 24, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brandMark: { width: 31, height: 31, borderRadius: 10, backgroundColor: '#477B5B', alignItems: 'center', justifyContent: 'center' },
-  brandName: { color: '#26352B', fontSize: 16, fontWeight: '800', letterSpacing: -0.5 },
+  brandMark: { width: 31, height: 31, borderRadius: 10, backgroundColor: theme.accentFill, alignItems: 'center', justifyContent: 'center' },
+  brandName: { color: theme.accentText, fontSize: 16, fontWeight: '800', letterSpacing: -0.5 },
   progressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  heroIcon: { width: 52, height: 52, borderRadius: 17, backgroundColor: '#EAF2EB', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-  eyebrow: { color: '#6F9176', fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
-  progress: { color: '#9AA49C', fontSize: 10, fontWeight: '700' },
-  title: { color: '#26352B', fontSize: 32, lineHeight: 37, fontWeight: '800', letterSpacing: -0.8 },
-  subtitle: { color: '#879189', fontSize: 13, lineHeight: 19, marginTop: 10, marginBottom: 23, maxWidth: 315 },
-  inputLabel: { color: '#89958C', fontSize: 9, fontWeight: '800', letterSpacing: 1.1, marginBottom: 7 },
+  heroIcon: { width: 52, height: 52, borderRadius: 17, backgroundColor: theme.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  eyebrow: { color: theme.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1.5 },
+  progress: { color: theme.textMuted, fontSize: 12, fontWeight: '700' },
+  title: { color: theme.accentText, fontSize: 32, lineHeight: 37, fontWeight: '800', letterSpacing: -0.8 },
+  subtitle: { color: theme.textMuted, fontSize: 13, lineHeight: 19, marginTop: 10, marginBottom: 23, maxWidth: 315 },
+  inputLabel: { color: theme.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1.1, marginBottom: 7 },
   labelSpacing: { marginTop: 17 },
-  inputWrap: { minHeight: 50, borderRadius: 13, borderWidth: 1, borderColor: '#E5EAE5', backgroundColor: '#FFFFFF', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  input: { flex: 1, color: '#34433A', fontSize: 14, paddingVertical: 12 },
-  textField: { minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: '#E5EAE5', backgroundColor: '#FFFFFF', color: '#34433A', fontSize: 14, paddingHorizontal: 13 },
-  helper: { color: '#9AA49C', fontSize: 10, marginTop: 8 },
+  inputWrap: { minHeight: 50, borderRadius: 13, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  input: { flex: 1, color: theme.textBody, fontSize: 14, paddingVertical: 12 },
+  textField: { minHeight: 48, borderRadius: 13, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, color: theme.textBody, fontSize: 14, paddingHorizontal: 13 },
+  helper: { color: theme.textMuted, fontSize: 12, marginTop: 8 },
   optionsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { minHeight: 37, paddingHorizontal: 13, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8E2', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  chipSelected: { borderColor: '#477B5B', backgroundColor: '#EAF2EB' },
-  chipText: { color: '#69756C', fontSize: 11, fontWeight: '600' },
-  chipTextSelected: { color: '#356447' },
-  error: { color: '#B9574B', fontSize: 11, lineHeight: 16, marginTop: 12 },
-  button: { minHeight: 49, borderRadius: 14, marginTop: 22, backgroundColor: '#477B5B', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
-  buttonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  chip: { minHeight: 37, paddingHorizontal: 13, borderRadius: 12, borderWidth: 1, borderColor: theme.borderStrong, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' },
+  chipSelected: { borderColor: theme.borderStrong, backgroundColor: theme.accentSoft },
+  chipText: { color: theme.textMuted, fontSize: 13, fontWeight: '600' },
+  chipTextSelected: { color: theme.accentText },
+  error: { color: theme.dangerText, fontSize: 13, lineHeight: 16, marginTop: 12 },
+  button: { minHeight: 49, borderRadius: 14, marginTop: 22, backgroundColor: theme.accentFill, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
+  buttonText: { color: theme.onAccent, fontSize: 13, fontWeight: '700' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 3 },
   saveButton: { flex: 1 },
   backButton: { minHeight: 45, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 4 },
-  backText: { color: '#477B5B', fontSize: 12, fontWeight: '700' },
+  backText: { color: theme.accentText, fontSize: 12, fontWeight: '700' },
   pressed: { opacity: 0.75 },
-});
+
+  });
+}

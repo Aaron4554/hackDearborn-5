@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MathText, { formatMathText } from '@/components/MathText';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Theme } from '@/constants/theme';
 
 type ReplyBlock =
   | { type: 'heading' | 'paragraph'; text: string }
@@ -111,6 +114,9 @@ function parseReply(text: string): ReplyBlock[] {
 }
 
 export default function StudyBuddyReply({ text }: { text: string }) {
+  const theme = useTheme();
+  const styles = useMemo(() => buildStyles(theme), [theme]);
+
   return (
     <View accessibilityLiveRegion="polite" style={styles.container}>
       {parseReply(text).map((block, index) => {
@@ -151,17 +157,18 @@ export default function StudyBuddyReply({ text }: { text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+function buildStyles(theme: Theme) {
+  return StyleSheet.create({
   container: { gap: 9 },
-  heading: { color: '#2E4435', fontSize: 14, fontWeight: '700', lineHeight: 20 },
-  paragraph: { flexShrink: 1, color: '#3C5142', fontSize: 14, lineHeight: 21 },
-  inlineMath: { color: '#2E4435', fontFamily: 'serif', fontSize: 15 },
+  heading: { color: theme.accentText, fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  paragraph: { flexShrink: 1, color: theme.accentText, fontSize: 14, lineHeight: 21 },
+  inlineMath: { color: theme.accentText, fontFamily: 'serif', fontSize: 15 },
   formula: {
     alignSelf: 'stretch',
     overflow: 'hidden',
     borderRadius: 10,
-    backgroundColor: '#F2F6F0',
-    color: '#26392D',
+    backgroundColor: theme.accentSoft,
+    color: theme.accentText,
     fontFamily: 'serif',
     fontSize: 19,
     lineHeight: 30,
@@ -171,5 +178,7 @@ const styles = StyleSheet.create({
   },
   list: { gap: 6 },
   listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  bullet: { color: '#477B5B', fontSize: 15, lineHeight: 21 },
-});
+  bullet: { color: theme.accentText, fontSize: 15, lineHeight: 21 },
+
+  });
+}
