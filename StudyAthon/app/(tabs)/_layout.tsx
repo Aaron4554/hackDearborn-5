@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type TabRoute = { key: string; name: string; params?: object };
@@ -22,10 +24,34 @@ const tabMeta: Record<string, { label: string; icon: IconName; color: string }> 
 
 function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
+  const [dockWidth, setDockWidth] = useState(0);
+  const indicatorX = useSharedValue(0);
+  const activeColor = tabMeta[state.routes[state.index]?.name]?.color ?? '#477B5B';
+  // onLayout reports the outer width, including the one-pixel border on both
+  // sides. The tabs fill the inner width; size the animated highlight to match.
+  const segmentWidth = Math.max(0, (dockWidth - 2) / state.routes.length);
+
+  useEffect(() => {
+    if (segmentWidth > 0) {
+      indicatorX.value = withSpring(state.index * segmentWidth, {
+        damping: 19,
+        stiffness: 175,
+        mass: 0.75,
+      });
+    }
+  }, [indicatorX, segmentWidth, state.index]);
+
+  const indicatorStyle = useAnimatedStyle(() => ({
+    width: segmentWidth,
+    transform: [{ translateX: indicatorX.value }],
+    backgroundColor: `${activeColor}18`,
+    borderColor: `${activeColor}32`,
+  }));
 
   return (
     <View pointerEvents="box-none" style={[styles.dockPosition, { bottom: Math.max(insets.bottom, 8) + 8 }]}>
-      <View style={styles.dock}>
+      <View onLayout={(event) => setDockWidth(event.nativeEvent.layout.width)} style={styles.dock}>
+        {segmentWidth > 0 ? <Animated.View pointerEvents="none" style={[styles.slider, indicatorStyle]} /> : null}
         {state.routes.map((route, index) => {
           const meta = tabMeta[route.name];
           if (!meta) return null;
@@ -46,7 +72,7 @@ function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps)
               onPress={onPress}
               style={styles.tab}
             >
-              <View style={[styles.iconWrap, focused && { backgroundColor: `${meta.color}16` }]}>
+              <View style={styles.iconWrap}>
                 <Ionicons name={meta.icon} size={21} color={color} />
               </View>
               <Text style={[styles.label, { color }, focused && styles.activeLabel]}>{label}</Text>
@@ -75,13 +101,13 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   dockPosition: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 50 },
   dock: {
-    width: '88%',
+    width: '90%',
     maxWidth: 410,
     minHeight: 66,
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
     paddingVertical: 7,
     borderRadius: 23,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderWidth: 1,
     borderColor: '#E8ECE7',
     flexDirection: 'row',
@@ -92,6 +118,14 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 7 },
     elevation: 12,
+  },
+  slider: {
+    position: 'absolute',
+    left: 0,
+    top: 7,
+    bottom: 7,
+    borderRadius: 18,
+    borderWidth: 1,
   },
   tab: { flex: 1, minHeight: 52, alignItems: 'center', justifyContent: 'center', gap: 2 },
   iconWrap: { width: 34, height: 29, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

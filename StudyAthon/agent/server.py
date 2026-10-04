@@ -13,7 +13,12 @@ from google.genai import types
 load_dotenv()
 
 from study_buddy.agent import root_agent
-from study_buddy.ingest.runner import IngestResult, build_parts, run_ingestion
+from study_buddy.ingest.runner import (
+    IngestResult,
+    QuestionCountError,
+    build_parts,
+    run_ingestion,
+)
 from study_buddy.resilient import InvalidRequestError
 from study_buddy.study import session as study_session
 from study_buddy.study.rules import clamp_question_count, public_views
@@ -283,6 +288,8 @@ async def create_study_session(
         )
     except InvalidRequestError as error:
         print(f"Study session input rejected: {error}")
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except QuestionCountError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except SessionError as error:
         raise _session_error(error) from error

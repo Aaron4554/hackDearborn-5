@@ -47,10 +47,11 @@ async def build_instruction(ctx: ReadonlyContext) -> str:
     else:
         count_instruction = (
             f"Write exactly {requested_count} questions TOTAL across the concepts. "
-            "Spread them across the most important concepts in the supplied source; "
-            "when the requested count is smaller than the number of concepts, choose "
-            "the concepts with the clearest, most testable evidence. Do not duplicate "
-            "questions to reach the count."
+            "Spread them across the most important concepts in the supplied source. "
+            "When several questions test one concept, test different specific facts "
+            "or applications supported by its evidence. Do not leave the set short "
+            "and do not repeat a stem. If the source is a short topic request, use "
+            "the normalized notes for that requested topic as your source."
         )
     return f"""\
 You write multiple-choice questions that check real understanding of a student's notes.

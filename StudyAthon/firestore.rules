@@ -28,8 +28,35 @@ service cloud.firestore {
         && request.resource.data.tag.matches('^[0-9]{4}$')
         && request.resource.data.points == 0
         && request.resource.data.createdAt == request.time;
-      // Points and identity fields are server-owned after profile creation.
-      allow update, delete: if false;
+      // A signed-in user may add points only alongside a one-time bounded game
+      // award record in the same transaction. Identity fields stay immutable.
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['points', 'lastPointAwardId'])
+        && request.resource.data.points is int
+        && request.resource.data.points > resource.data.points
+        && request.resource.data.lastPointAwardId is string
+        && existsAfter(/databases/$(database)/documents/users/$(uid)/pointAwards/$(request.resource.data.lastPointAwardId))
+        && getAfter(/databases/$(database)/documents/users/$(uid)/pointAwards/$(request.resource.data.lastPointAwardId)).data.points
+          == request.resource.data.points - resource.data.points;
+      allow delete: if false;
+
+      match /pointAwards/{awardId} {
+        allow get: if signedIn() && request.auth.uid == uid;
+        allow list: if false;
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['points', 'createdAt'])
+          && request.resource.data.points is int
+          && request.resource.data.points > 0
+          && request.resource.data.points <= 200
+          && request.resource.data.createdAt == request.time
+          && getAfter(/databases/$(database)/documents/users/$(uid)).data.lastPointAwardId == awardId
+          && getAfter(/databases/$(database)/documents/users/$(uid)).data.points
+            == get(/databases/$(database)/documents/users/$(uid)).data.points + request.resource.data.points;
+        allow update, delete: if false;
+      }
     }
 
     match /userPrivate/{uid} {

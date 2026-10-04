@@ -19,6 +19,15 @@ from study_buddy.settings import MAX_CONCEPTS, resilient_model
 
 async def build_instruction(ctx: ReadonlyContext) -> str:
     notes = state_json(ctx, SOURCE_NOTES, {"sections": [], "key_terms": []})
+    requested_count = ctx.state.get("question_count")
+    count_guidance = (
+        f"The quiz needs {requested_count} questions. Extract enough distinct, "
+        "well-supported facts from the material to support that many non-repeated "
+        "questions, using multiple facts from a topic when needed. Never invent "
+        "facts to hit the target."
+        if requested_count is not None
+        else ""
+    )
     return f"""\
 You break study material into the smallest units that can each support exactly one \
 multiple-choice question.
@@ -27,6 +36,7 @@ SOURCE NOTES (JSON):
 {notes}
 
 Produce at most {MAX_CONCEPTS} concepts.
+{count_guidance}
 
 A good concept is:
 - atomic: one idea, not a bundle. "The cell divides" tests cleanly; "Cell division \
