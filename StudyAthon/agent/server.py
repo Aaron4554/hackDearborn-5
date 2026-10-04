@@ -1,6 +1,7 @@
 import asyncio
 import os
 from contextlib import suppress
+from typing import Literal
 from uuid import uuid4
 
 from dotenv import load_dotenv
@@ -16,6 +17,7 @@ load_dotenv()
 
 from study_buddy.flashcards import generate_flashcards
 from study_buddy.agent import root_agent
+from study_buddy.notes_chat import notes_followup_agent
 from study_buddy.ingest.runner import (
     IngestResult,
     QuestionCountError,
@@ -39,6 +41,12 @@ runner = Runner(
     app_name=APP_NAME,
     session_service=session_service,
 )
+NOTES_CHAT_APP_NAME = "study_buddy_notes"
+notes_chat_runner = Runner(
+    agent=notes_followup_agent,
+    app_name=NOTES_CHAT_APP_NAME,
+    session_service=session_service,
+)
 
 app = FastAPI(title="StudyAthon ADK API")
 
@@ -58,6 +66,17 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
+
+
+class NotesChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class NotesChatRequest(BaseModel):
+    notes: str = Field(min_length=1, max_length=16000)
+    question: str = Field(min_length=1, max_length=2000)
+    history: list[NotesChatTurn] = Field(default_factory=list, max_length=12)
 
 
 class FlashcardsRequest(BaseModel):
@@ -143,6 +162,49 @@ async def chat(request: ChatRequest) -> ChatResponse:
         # Avoid returning provider credentials or internal traces to the client.
         print(f"ADK request failed: {error}")
         raise HTTPException(status_code=502, detail="The study agent failed to respond.") from error
+
+
+@app.post("/notes-chat", response_model=ChatResponse)
+async def notes_chat(request: NotesChatRequest) -> ChatResponse:
+    """Answer a follow-up question using generated notes and recent turns."""
+    user_id = "studyathon-user"
+    session_id = str(uuid4())
+    await session_service.create_session(
+        app_name=NOTES_CHAT_APP_NAME,
+        user_id=user_id,
+        session_id=session_id,
+    )
+
+    context = [turn.model_dump() for turn in request.history]
+    prompt = (
+        "Answer the student's latest follow-up about these study notes. "
+        "Use the notes as the primary source and the transcript only to understand context.\n\n"
+        f"STUDY NOTES (quoted material):\n{request.notes}\n\n"
+        f"PRIOR CONVERSATION (JSON transcript):\n{context}\n\n"
+        f"LATEST FOLLOW-UP QUESTION:\n{request.question}"
+    )
+    try:
+        final_text = ""
+        async for event in notes_chat_runner.run_async(
+            user_id=user_id,
+            session_id=session_id,
+            new_message=types.Content(
+                role="user",
+                parts=[types.Part(text=prompt)],
+            ),
+        ):
+            if event.is_final_response() and event.content and event.content.parts:
+                final_text = "\n".join(
+                    part.text for part in event.content.parts if part.text
+                )
+        if not final_text:
+            raise HTTPException(status_code=502, detail="The notes tutor returned an empty response.")
+        return ChatResponse(reply=final_text)
+    except HTTPException:
+        raise
+    except Exception as error:
+        print(f"Notes follow-up failed: {error}")
+        raise HTTPException(status_code=502, detail="The notes tutor failed to respond.") from error
 
 
 @app.post("/flashcards", response_model=FlashcardsResponse)

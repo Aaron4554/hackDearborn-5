@@ -89,6 +89,11 @@ export type StudySessionRequest = {
   takesAdvancedClasses?: boolean | null;
 };
 
+export type NotesChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
 export type GeneratedStudyGameSet = {
   title: string;
   key_terms: { term: string; definition: string }[];
@@ -262,6 +267,20 @@ function defaultFor(status: number): string {
 /** Ask the study tutor a free-form question. */
 export async function chat(message: string): Promise<string> {
   const data = await postJson<{ reply?: string }>('/chat', { message });
+  return data?.reply ?? '';
+}
+
+/** Ask a follow-up using the generated notes and recent discussion as context. */
+export async function chatAboutNotes(
+  notes: string,
+  question: string,
+  history: NotesChatMessage[],
+): Promise<string> {
+  const data = await postJson<{ reply?: string }>('/notes-chat', {
+    notes,
+    question,
+    history: history.slice(-10),
+  });
   return data?.reply ?? '';
 }
 

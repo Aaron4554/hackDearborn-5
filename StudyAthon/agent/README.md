@@ -10,6 +10,7 @@ server.
 | --- | --- | --- | --- |
 | `GET /health` | Liveness check. | `200` | — |
 | `POST /chat` | The study tutor. JSON body `{"message": "..."}`. | `200` | `422` empty, `502` model failure |
+| `POST /notes-chat` | Follow-up question grounded in generated notes. JSON body `{"notes", "question", "history?"}`. | `200` | `422` invalid input, `502` model failure |
 | `POST /flashcards` | Topic and/or notes → a flashcard deck. JSON body `{"topic?", "text?", "count?"}`. `count` is 3-20, default 8. | `200` | `422` no topic or text, `502` model failure |
 | `POST /ingest` | Notes/PDF/slides/YouTube → validated MCQ bank. Multipart form. | `200` | `413` too large, `422` bad input, `502` model failure |
 | `POST /study/session` | Material + settings → a playable first iteration. Multipart form. | `200` | `413`, `422`, `502` |

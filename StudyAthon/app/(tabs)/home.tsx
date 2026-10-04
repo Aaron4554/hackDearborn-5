@@ -15,7 +15,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import StudyBuddyReply from '@/components/StudyBuddyReply';
-import { chat, describeAgentError } from '@/services/agent';
+import { chat, chatAboutNotes, describeAgentError, type NotesChatMessage } from '@/services/agent';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Theme } from '@/constants/theme';
 
@@ -90,6 +90,10 @@ export default function HomeScreen() {
   const [message, setMessage] = useState('');
   const [answer, setAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [followup, setFollowup] = useState('');
+  const [followupMessages, setFollowupMessages] = useState<NotesChatMessage[]>([]);
+  const [isSendingFollowup, setIsSendingFollowup] = useState(false);
+  const [followupError, setFollowupError] = useState('');
   const [showModes, setShowModes] = useState(false);
   const hasPrompt = prompt.trim().length > 0;
 
@@ -103,6 +107,9 @@ export default function HomeScreen() {
     setIsLoading(true);
     setMessage('');
     setAnswer('');
+    setFollowup('');
+    setFollowupMessages([]);
+    setFollowupError('');
     try {
       const submittedPrompt = prompt.trim();
       const reply = await chat(submittedPrompt);
@@ -111,6 +118,27 @@ export default function HomeScreen() {
       setMessage(describeAgentError(error));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const submitFollowup = async () => {
+    const question = followup.trim();
+    if (!answer || !question || isSendingFollowup) return;
+    setIsSendingFollowup(true);
+    setFollowupError('');
+    try {
+      const notesContext = `Study topic: ${prompt.trim()}\n\nGenerated notes:\n${answer}`;
+      const reply = await chatAboutNotes(notesContext, question, followupMessages);
+      setFollowupMessages((current) => [
+        ...current,
+        { role: 'user', content: question },
+        { role: 'assistant', content: reply },
+      ]);
+      setFollowup('');
+    } catch (error) {
+      setFollowupError(describeAgentError(error));
+    } finally {
+      setIsSendingFollowup(false);
     }
   };
 
@@ -287,6 +315,51 @@ export default function HomeScreen() {
               <Text style={styles.promptTitle}>Your study buddy notes</Text>
             </View>
             <StudyBuddyReply text={answer} />
+            <View style={styles.followupDivider} />
+            <Text style={styles.followupTitle}>Questions about these notes?</Text>
+            <Text style={styles.followupHint}>Ask for a simpler explanation, an example, or clarification.</Text>
+            {followupMessages.map((item, index) => (
+              <View key={`${index}-${item.role}`} style={[
+                styles.followupBubble,
+                item.role === 'user' ? styles.followupUserBubble : styles.followupAssistantBubble,
+              ]}>
+                {item.role === 'assistant'
+                  ? <StudyBuddyReply text={item.content} />
+                  : <Text style={styles.followupUserText}>{item.content}</Text>}
+              </View>
+            ))}
+            {isSendingFollowup ? (
+              <View style={styles.followupThinking}>
+                <ActivityIndicator size="small" color={theme.accentText} />
+                <Text style={styles.followupHint}>Thinking about your notes…</Text>
+              </View>
+            ) : null}
+            {followupError ? <Text accessibilityLiveRegion="polite" style={styles.error}>{followupError}</Text> : null}
+            <View style={styles.followupComposer}>
+              <TextInput
+                value={followup}
+                onChangeText={(value) => {
+                  setFollowup(value);
+                  setFollowupError('');
+                }}
+                placeholder="Ask a follow-up question…"
+                placeholderTextColor={theme.textMuted}
+                accessibilityLabel="Ask a question about these notes"
+                multiline
+                maxLength={2000}
+                style={styles.followupInput}
+              />
+              <Pressable
+                onPress={() => void submitFollowup()}
+                disabled={!followup.trim() || isSendingFollowup}
+                accessibilityRole="button"
+                accessibilityLabel="Send follow-up question"
+                style={({ pressed }) => [styles.followupSend, (!followup.trim() || isSendingFollowup) && styles.followupSendDisabled, pressed && styles.pressed]}>
+                {isSendingFollowup
+                  ? <ActivityIndicator size="small" color={theme.onAccent} />
+                  : <Feather name="arrow-up" size={18} color={theme.onAccent} />}
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
@@ -495,6 +568,18 @@ function buildStyles(theme: Theme) {
     marginTop: 2,
   },
   answerCard: { backgroundColor: theme.accentSoft, borderRadius: 18, padding: 16, marginTop: 13 },
+  followupDivider: { height: 1, backgroundColor: theme.border, marginTop: 16, marginBottom: 13 },
+  followupTitle: { color: theme.textPrimary, fontSize: 14, fontWeight: '800' },
+  followupHint: { color: theme.textMuted, fontSize: 12, lineHeight: 17, marginTop: 4 },
+  followupBubble: { maxWidth: '94%', borderRadius: 14, padding: 11, marginTop: 10 },
+  followupUserBubble: { alignSelf: 'flex-end', backgroundColor: theme.surface },
+  followupAssistantBubble: { alignSelf: 'flex-start', backgroundColor: theme.surfaceSoft },
+  followupUserText: { color: theme.textPrimary, fontSize: 13, lineHeight: 19 },
+  followupThinking: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12 },
+  followupComposer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: theme.border, borderRadius: 14, backgroundColor: theme.surface, padding: 7, marginTop: 12 },
+  followupInput: { flex: 1, maxHeight: 110, minHeight: 38, color: theme.textPrimary, fontSize: 13, lineHeight: 19, paddingHorizontal: 7, paddingVertical: 8 },
+  followupSend: { width: 38, height: 38, borderRadius: 12, backgroundColor: theme.accentFill, alignItems: 'center', justifyContent: 'center' },
+  followupSendDisabled: { opacity: 0.5 },
   thinkingCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   thinkingText: { color: theme.textBody, fontSize: 13, flex: 1 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
