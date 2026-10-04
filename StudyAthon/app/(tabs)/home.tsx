@@ -242,9 +242,12 @@ export default function HomeScreen() {
               onPress={submitPrompt}
               disabled={isLoading}
               accessibilityRole="button"
+              accessibilityState={{ busy: isLoading }}
               style={({ pressed }) => [styles.secondaryButton, (pressed || isLoading) && styles.pressed]}>
-              <Ionicons name="sparkles-outline" size={15} color={theme.accentText} />
-              <Text style={styles.secondaryButtonText}>Ask</Text>
+              {isLoading
+                ? <ActivityIndicator size="small" color={theme.accentText} />
+                : <Ionicons name="sparkles-outline" size={15} color={theme.accentText} />}
+              <Text style={styles.secondaryButtonText}>{isLoading ? 'Asking…' : 'Ask'}</Text>
             </Pressable>
             <Pressable
               onPress={startLearning}
@@ -255,6 +258,22 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
+
+        {isLoading ? (
+          <View
+            style={[styles.answerCard, styles.thinkingCard]}
+            accessibilityLiveRegion="polite"
+            accessible
+            accessibilityLabel="Your study buddy is thinking">
+            <View style={styles.answerHeading}>
+              <View style={styles.aiIcon}>
+                <ActivityIndicator size="small" color={theme.accentText} />
+              </View>
+              <Text style={styles.promptTitle}>Your study buddy is thinking</Text>
+            </View>
+            <Text style={styles.thinkingText}>Pulling your notes together…</Text>
+          </View>
+        ) : null}
 
         {answer ? (
           <View style={styles.answerCard}>
@@ -471,6 +490,8 @@ function buildStyles(theme: Theme) {
     marginTop: 2,
   },
   answerCard: { backgroundColor: theme.accentSoft, borderRadius: 18, padding: 16, marginTop: 13 },
+  thinkingCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  thinkingText: { color: theme.textBody, fontSize: 13, flex: 1 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
   promptFooter: { borderTopWidth: 1, borderTopColor: theme.surfaceSoft, paddingTop: 14, marginTop: 13, flexDirection: 'column', alignItems: 'stretch', gap: 12 },
   secondaryButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderWidth: 1, borderColor: theme.border },
