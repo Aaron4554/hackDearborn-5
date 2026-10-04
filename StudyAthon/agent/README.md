@@ -224,12 +224,11 @@ replayed rather than regenerated. See *Free-tier quota* above.
 ## Run locally
 
 1. Install Python 3.11 or newer (developed against 3.14).
-2. In this directory, create an environment and install dependencies:
+2. From the `StudyAthon` directory, activate the project environment and install dependencies:
 
    ```sh
-   python -m venv .venv
    source .venv/bin/activate       # Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
+   python -m pip install -r agent/requirements.txt
    ```
 
    `python-multipart` is required by FastAPI for the `/ingest` form fields.
@@ -246,25 +245,41 @@ replayed rather than regenerated. See *Free-tier quota* above.
    set `PORT` in `.env` — a stale server on 8000 answers `404` to `/health`,
    which looks like a broken backend rather than the wrong process.
 
-5. Copy `.env.example` to `StudyAthon/.env` and set
-   `EXPO_PUBLIC_AGENT_API_URL=http://YOUR_COMPUTER_LAN_IP:8000` (use
-   `http://localhost:8000` when running the app in a web browser on this computer).
-   Restart Expo after changing its `.env` file. A physical phone needs the computer's
-   reachable LAN IP and both devices on the same network.
+5. Set `EXPO_PUBLIC_AGENT_API_URL=http://localhost:8000` in `StudyAthon/.env`.
+   The client uses Expo's development host for physical devices and Android's
+   emulator host alias when needed. For a release build or a custom network, set
+   this variable to a backend URL reachable from that device. Restart Expo after
+   changing `.env` with `npx expo start -c`.
+
+### Deploying the web app
+
+The FastAPI service must be deployed separately from the static Expo web app.
+Give the API a public HTTPS URL and confirm its `/health` route returns
+`{"status":"ok"}`. Set `EXPO_PUBLIC_AGENT_API_URL` to that HTTPS base URL in the
+web build environment **before** building/exporting the web app; the value is
+embedded in the JavaScript bundle at build time. Do not use `localhost` for a
+deployed site, and never put `GOOGLE_API_KEY` in an `EXPO_PUBLIC_*` variable.
+Rebuild and redeploy the web app after changing this value.
 
 The mobile app accepts the server URL as a public setting; never put `GOOGLE_API_KEY`
 in the Expo app's `.env` file.
 
 `load_dotenv()` searches upward from the script's own directory, so the server
-finds `.env` no matter which directory you launch it from. It switches to the
-*current* directory under a debugger or REPL though, so set the launch `cwd` to
-this directory when debugging from an IDE.
+finds `agent/.env` no matter which directory you launch it from. It switches to
+the *current* directory under a debugger or REPL though, so set the launch `cwd`
+to `agent/` when debugging from an IDE.
 
 ## Customize the agent
 
-Two agent graphs ship here. The study tutor lives in `study_buddy/agent.py`; the
-ingestion agents live in `study_buddy/ingest/`, one file per stage. Change the
-model or instruction, then add ADK tools in the `tools=[...]` argument.
+The chat tutor used by the app lives in `study_buddy/agent.py`. Its instructions
+are to answer the student's question first, adapt to their level, explain the
+reasoning, use supplied study material as the source of truth, and be clear about
+uncertainty. It should guide problem solving and correct misunderstandings kindly,
+without claiming to launch app features. The Expo home screen calls `/chat`
+through `services/agent.ts` and displays the tutor's reply. Quiz creation and its
+rules stay in the separate `/study/*` flow. The ingestion agents live in
+`study_buddy/ingest/`, one file per stage. Change the model or instruction, then
+add ADK tools in the `tools=[...]` argument.
 
 The `server.py` endpoints are thin adapters between the app's HTTP request and
 ADK's Python `Runner` API. The `/chat` adapter passes `{ "message": "..." }`
@@ -276,7 +291,7 @@ Knobs in `.env` are read once at import time by `study_buddy/settings.py`:
 | Variable | Default | Effect |
 | --- | --- | --- |
 | `STUDYATHON_MODEL` | `gemini-3.8-flash` | Primary model for every stage. |
-| `STUDYATHON_MODEL_FALLBACKS` | 3.8, 3.6, 3.5, 3.1-flash-lite | Tried in order when the primary fails. |
+| `STUDYATHON_MODEL_FALLBACKS` | 3.8, 3.6, 3.5, 3.5-flash-lite | Tried in order when the primary fails. |
 | `STUDYATHON_RETRY_ATTEMPTS` | `3` | Attempts per model before moving on. |
 | `STUDYATHON_RETRY_BASE_DELAY` | `2.0` | Exponential backoff base, capped at 20s. |
 | `STUDYATHON_QUESTIONS_PER_CONCEPT` | `2` | Questions generated per concept. |
@@ -284,8 +299,10 @@ Knobs in `.env` are read once at import time by `study_buddy/settings.py`:
 | `STUDYATHON_WRITER_MAX_OUTPUT_TOKENS` | `65536` | Writer output budget; raise if long uploads truncate. |
 | `PORT` | `8000` | FastAPI port. |
 
-Sessions are in-memory and created per request, so each request is an
-independent interaction and nothing is persisted between calls. Add a durable
-session store and authentication before using this as a multi-user service.
+Chat sessions are created per request. Study-loop sessions are held in the
+backend process memory for up to six hours of inactivity. Restarting the backend
+clears them, so keep the process running for the duration of a study session.
+Run one backend process for local use; multiple workers or replicas need a
+shared durable session store before they can safely serve the same session.
 Restrict CORS origins in `server.py` when deploying publicly — it currently
 allows all origins for local Expo development.

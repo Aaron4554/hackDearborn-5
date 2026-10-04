@@ -1,3 +1,6 @@
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 /**
  * Typed client for the StudyAthon ADK backend.
  *
@@ -127,7 +130,38 @@ export function agentUrl(): string {
       -1,
     );
   }
-  return raw.replace(/\/+$/, '');
+  const url = new URL(raw);
+
+  if (!__DEV__ && isLoopback(url.hostname)) {
+    throw new AgentError(
+      'This deployed app is configured with localhost. Deploy the FastAPI backend, then set EXPO_PUBLIC_AGENT_API_URL to its public HTTPS URL and rebuild the web app.',
+      -1,
+    );
+  }
+
+  // Expo's development host is reachable from a physical phone on the same
+  // Wi-Fi, while localhost/127.0.0.1 always points back to the phone itself.
+  // Keep the backend port from the configured URL and borrow only the host.
+  if (__DEV__ && Platform.OS !== 'web' && isLoopback(url.hostname)) {
+    const expoHost = Constants.expoConfig?.hostUri;
+    if (expoHost) {
+      const hostname = new URL(`http://${expoHost}`).hostname;
+      if (!isLoopback(hostname)) {
+        url.hostname = hostname;
+      } else if (Platform.OS === 'android') {
+        url.hostname = '10.0.2.2';
+      }
+    } else if (Platform.OS === 'android') {
+      // Android emulator's special alias for the host computer.
+      url.hostname = '10.0.2.2';
+    }
+  }
+
+  return url.toString().replace(/\/+$/, '');
+}
+
+function isLoopback(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0';
 }
 
 /**
@@ -148,7 +182,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     });
   } catch {
     throw new AgentError(
-      'Could not reach the study backend. Check that it is running and that EXPO_PUBLIC_AGENT_API_URL points at it.',
+      `Could not reach the study backend at ${url}. Start the backend and make sure this device can reach that address.`,
     );
   }
 
@@ -184,7 +218,7 @@ function detailOf(data: unknown): string | null {
 function defaultFor(status: number): string {
   switch (status) {
     case 404:
-      return 'That study session is gone. Start a new one.';
+      return 'The backend returned 404. Check that the app points to the StudyAthon API and that this study session still exists.';
     case 409:
       return 'That action does not fit the session\'s current state.';
     case 413:
@@ -230,7 +264,7 @@ export async function createStudySession(request: StudySessionRequest): Promise<
     response = await fetch(url, { method: 'POST', body: form });
   } catch {
     throw new AgentError(
-      'Could not reach the study backend. Check that it is running and that EXPO_PUBLIC_AGENT_API_URL points at it.',
+      `Could not reach the study backend at ${url}. Start the backend and make sure this device can reach that address.`,
     );
   }
 
@@ -247,7 +281,7 @@ export async function resumeStudySession(sessionId: string): Promise<StudyState>
   try {
     response = await fetch(`${agentUrl()}/study/session/${sessionId}`);
   } catch {
-    throw new AgentError('Could not reach the study backend.');
+    throw new AgentError(`Could not reach the study backend at ${agentUrl()}.`);
   }
 
   const data = await readBody(response);

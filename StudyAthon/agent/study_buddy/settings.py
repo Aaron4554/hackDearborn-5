@@ -12,15 +12,13 @@ import os
 # Gemini Developer API, but pinning keeps runs reproducible.
 MODEL = os.getenv("STUDYATHON_MODEL", "gemini-3.8-flash")
 
-# Ordered fallbacks, tried when MODEL returns a capacity error. Every model here
-# was verified to serve requests with an API key; note that `models.list()`
-# advertises some models (gemini-2.5-flash, gemini-3.1-flash) that 404 on
-# generate, so availability must be probed, not assumed.
+# Ordered fallbacks, tried when MODEL is unavailable or over quota. Model access
+# can vary by API key, so keep currently supported alternatives in this list.
 MODEL_FALLBACKS = [
     m.strip()
     for m in os.getenv(
         "STUDYATHON_MODEL_FALLBACKS",
-        "gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.1-flash-lite",
+        "gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite",
     ).split(",")
     if m.strip()
 ]

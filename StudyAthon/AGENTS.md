@@ -34,7 +34,9 @@ Run lint and typecheck before declaring any task done.
 The AI lives in a separate FastAPI service under `agent/`. Without it, chat and the study loop do nothing.
 
 ```bash
-cd agent && .venv/bin/python -m uvicorn study_buddy.server:app --host 0.0.0.0 --port 8010
+source .venv/bin/activate
+python -m pip install -r agent/requirements.txt  # once, if dependencies are not installed
+cd agent && python server.py
 ```
 
 Then point the app at it and **restart with `npx expo start -c`**:
@@ -43,15 +45,13 @@ Then point the app at it and **restart with `npx expo start -c`**:
 cp .env.example .env
 ```
 
-`EXPO_PUBLIC_AGENT_API_URL` is not an Expo built-in. It is a custom variable this repo uses; Expo inlines `EXPO_PUBLIC_*` into the client bundle at build time, so editing `.env` without the `-c` restart silently keeps the old URL. Never put a secret in it — the backend key lives in `agent/.env`.
+`EXPO_PUBLIC_AGENT_API_URL` is not an Expo built-in. It is a custom variable this repo uses; Expo inlines `EXPO_PUBLIC_*` into the client bundle at build time, so editing `.env` without the `-c` restart silently keeps the old URL. Never put a secret in it — the backend key lives in `agent/.env`. The backend uses port `8000`; the client adapts a loopback URL to the Expo dev host on devices.
 
 | Running the app on | Value |
 | --- | --- |
-| Web / iOS Simulator | `http://localhost:8010` |
-| Android emulator | `http://10.0.2.2:8010` |
-| Physical phone | `http://<your-LAN-IP>:8010`, same Wi-Fi, backend bound to `0.0.0.0` |
-
-The port is `8010` because `8000` is often taken by something else on a dev machine.
+| Web / iOS Simulator | `http://localhost:8000` |
+| Android emulator | `http://10.0.2.2:8000` |
+| Physical phone | `http://<your-LAN-IP>:8000`, same Wi-Fi, backend bound to `0.0.0.0` |
 
 ### Talking to it
 

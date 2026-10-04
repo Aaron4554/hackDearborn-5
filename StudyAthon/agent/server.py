@@ -353,5 +353,7 @@ if __name__ == "__main__":
         "server:app",
         host="0.0.0.0",
         port=int(os.getenv("PORT", "8000")),
-        reload=True,
+        # Reloading replaces the process and clears the in-memory study-session
+        # store. Enable it explicitly during development with STUDYATHON_RELOAD=1.
+        reload=os.getenv("STUDYATHON_RELOAD", "0").lower() in {"1", "true", "yes"},
     )
