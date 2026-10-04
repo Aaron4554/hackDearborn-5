@@ -5,6 +5,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  updateDoc,
   where,
   type FirestoreError,
 } from 'firebase/firestore';
@@ -85,6 +86,18 @@ export async function savePersonalInfo(uid: string, info: PersonalInfo): Promise
     const existing = await transaction.get(privateRef);
     if (existing.exists()) throw new SocialError('Your personal information is already saved.');
     transaction.set(privateRef, personalInfoDocument(uid, info));
+  });
+}
+
+export async function updatePersonalInfo(uid: string, info: PersonalInfo): Promise<void> {
+  const { firstName, lastName, educationLevel, gradeLevel, takesAdvancedClasses, age } = info;
+  await updateDoc(doc(db, 'userPrivate', uid), {
+    firstName,
+    lastName,
+    educationLevel,
+    gradeLevel,
+    takesAdvancedClasses,
+    age,
   });
 }
 

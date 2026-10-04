@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -46,15 +47,23 @@ export default function LoadingScreen({ label = 'Getting things ready…' }: { l
 
   return (
     <View style={styles.screen} accessibilityRole="progressbar" accessibilityLabel={label}>
-      <View style={styles.logoMark}><Text style={styles.logoGlyph}>✦</Text></View>
-      <View style={styles.book}>
-        <View style={styles.leftPage} />
-        <View style={styles.rightPage} />
-        <View style={styles.spine} />
-        <Animated.View style={[styles.flippingPage, pageStyle]} />
-        <View style={styles.bookBase} />
+      <View style={styles.brandRow}>
+        <View style={styles.book}>
+          <View style={[styles.page, styles.leftPage]}>
+            <View style={styles.pageLines}><View style={styles.pageLine} /><View style={styles.pageLine} /><View style={[styles.pageLine, styles.shortLine]} /></View>
+          </View>
+          <View style={[styles.page, styles.rightPage]}>
+            <View style={styles.pageLines}><View style={styles.pageLine} /><View style={styles.pageLine} /><View style={[styles.pageLine, styles.shortLine]} /></View>
+          </View>
+          <View style={styles.spine} />
+          <Animated.View style={[styles.flippingPage, pageStyle]} />
+          <View style={styles.bookBase} />
+        </View>
+        <View style={styles.brandLockup}>
+          <View style={styles.logoMark}><Ionicons name="book" size={18} color={theme.onAccent} /></View>
+          <Text style={styles.brand}>studyathon</Text>
+        </View>
       </View>
-      <Text style={styles.brand}>studyathon</Text>
       <Text style={styles.label}>{label}</Text>
       <View style={styles.progressTrack}>
         <Animated.View style={[styles.progressFill, progressStyle]} />
@@ -71,41 +80,30 @@ function buildStyles(theme: Theme) {
     justifyContent: 'center',
     backgroundColor: theme.page,
   },
-  logoMark: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    backgroundColor: theme.accentFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  logoGlyph: { color: theme.onAccent, fontSize: 18, fontWeight: '700' },
-  book: { width: 126, height: 86, flexDirection: 'row', position: 'relative' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
+  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logoMark: { width: 31, height: 31, borderRadius: 10, backgroundColor: theme.accentFill, alignItems: 'center', justifyContent: 'center' },
+  book: { width: 112, height: 78, flexDirection: 'row', position: 'relative' },
+  page: { width: 54, height: 66, borderWidth: 1, marginTop: 3 },
   leftPage: {
-    width: 61,
-    height: 72,
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 5,
     backgroundColor: theme.surface,
     borderColor: theme.border,
-    borderWidth: 1,
-    marginTop: 4,
   },
   rightPage: {
-    width: 61,
-    height: 72,
     borderTopRightRadius: 8,
     borderBottomRightRadius: 5,
     backgroundColor: theme.accentSoft,
     borderColor: theme.borderStrong,
-    borderWidth: 1,
-    marginTop: 4,
   },
+  pageLines: { gap: 6, marginTop: 15, marginHorizontal: 8 },
+  pageLine: { height: 2, borderRadius: 2, backgroundColor: theme.borderStrong, opacity: 0.75 },
+  shortLine: { width: '65%' },
   spine: {
     position: 'absolute',
     zIndex: 2,
-    left: 62,
+    left: 55,
     top: 6,
     bottom: 8,
     width: 2,
@@ -114,10 +112,10 @@ function buildStyles(theme: Theme) {
   flippingPage: {
     position: 'absolute',
     zIndex: 3,
-    left: 63,
+    left: 56,
     top: 4,
-    width: 59,
-    height: 73,
+    width: 53,
+    height: 67,
     backgroundColor: theme.surface,
     borderColor: theme.borderStrong,
     borderWidth: 1,
@@ -135,7 +133,7 @@ function buildStyles(theme: Theme) {
     borderRadius: 3,
     backgroundColor: theme.neutralFill,
   },
-  brand: { color: theme.accentText, fontSize: 18, fontWeight: '800', marginTop: 24, letterSpacing: -0.4 },
+  brand: { color: theme.accentText, fontSize: 18, fontWeight: '800', letterSpacing: -0.4 },
   label: { color: theme.textMuted, fontSize: 13, marginTop: 7 },
   progressTrack: { width: 88, height: 3, borderRadius: 2, backgroundColor: theme.accentSoft, marginTop: 22, overflow: 'hidden' },
   progressFill: { width: 44, height: 3, borderRadius: 2, backgroundColor: theme.memoryFill },

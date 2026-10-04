@@ -63,13 +63,11 @@ service cloud.firestore {
       // Names and study details are private, especially for younger students.
       allow get: if signedIn() && request.auth.uid == uid;
       allow list: if false;
-      allow create: if signedIn()
-        && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly([
+      function validPersonalInfo() {
+        return request.resource.data.keys().hasOnly([
           'uid', 'firstName', 'lastName', 'educationLevel', 'gradeLevel',
           'takesAdvancedClasses', 'age', 'createdAt'
         ])
-        && request.resource.data.uid == uid
         && request.resource.data.firstName is string
         && request.resource.data.firstName.size() > 0
         && request.resource.data.firstName.size() <= 80
@@ -92,9 +90,19 @@ service cloud.firestore {
         && (request.resource.data.age == null
           || (request.resource.data.age is int
             && request.resource.data.age >= 5
-            && request.resource.data.age <= 100))
+            && request.resource.data.age <= 100));
+      }
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && validPersonalInfo()
         && request.resource.data.createdAt == request.time;
-      allow update, delete: if false;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && validPersonalInfo()
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
     }
 
     match /handles/{handleId} {

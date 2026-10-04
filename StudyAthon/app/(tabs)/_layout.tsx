@@ -10,6 +10,7 @@ import type { Theme } from '@/constants/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 type TabRoute = { key: string; name: string; params?: object };
+const DOCK_HORIZONTAL_INSET = 10;
 type FloatingTabBarProps = {
   state: { index: number; routes: TabRoute[] };
   descriptors: Record<string, { options: { tabBarLabel?: unknown; tabBarAccessibilityLabel?: string } }>;
@@ -35,9 +36,11 @@ function FloatingTabBar({ state, descriptors, navigation }: FloatingTabBarProps)
   const indicatorX = useSharedValue(0);
   const tabMeta = getTabMeta(theme);
   const activeColor = tabMeta[state.routes[state.index]?.name]?.color ?? theme.dockAccentGreen;
-  // onLayout reports the outer width, including the one-pixel dock border on both
-  // sides. The tabs fill the inner width; size the animated highlight to match.
-  const segmentWidth = Math.max(0, (dockWidth - 2) / state.routes.length);
+  // The tabs and animated highlight share the dock's padded inner width.
+  const segmentWidth = Math.max(
+    0,
+    (dockWidth - 2 - DOCK_HORIZONTAL_INSET * 2) / state.routes.length,
+  );
 
   useEffect(() => {
     if (segmentWidth > 0) {
@@ -115,7 +118,7 @@ function buildStyles(theme: Theme) {
     width: '90%',
     maxWidth: 410,
     minHeight: 66,
-    paddingHorizontal: 0,
+    paddingHorizontal: DOCK_HORIZONTAL_INSET,
     paddingVertical: 7,
     borderRadius: 23,
     backgroundColor: theme.dockSurface,
@@ -132,7 +135,7 @@ function buildStyles(theme: Theme) {
   },
   slider: {
     position: 'absolute',
-    left: 0,
+    left: DOCK_HORIZONTAL_INSET,
     top: 7,
     bottom: 7,
     borderRadius: 18,

@@ -1,6 +1,7 @@
 # Firestore profile data
 
-Deploy the rules in `firestore.rules` before using signup and profile setup:
+Deploy the rules in `firestore.rules` before using signup, profile setup, or
+editing the study profile in Settings. Redeploy after rule changes:
 
 ```sh
 firebase deploy --only firestore:rules
@@ -19,4 +20,5 @@ Each account has two profile documents keyed by its Firebase Auth UID:
 The app creates the public and private documents together when it reserves the
 username tag. `getPersonalInfo(uid)` in `services/social.ts` retrieves the
 private details for the signed-in user's UID; Firestore rules reject reads for
-other users.
+other users and allow only that user to update validated personal education
+details. Username and ranking data remain protected from client edits.
