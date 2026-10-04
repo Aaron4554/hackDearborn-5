@@ -1,8 +1,10 @@
+import asyncio
 import os
+from contextlib import suppress
 from uuid import uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -183,6 +185,10 @@ async def ingest(
     text: str | None = Form(default=None),
     urls: list[str] = Form(default_factory=list),
     files: list[UploadFile] = File(default_factory=list),
+    question_count: int | None = Form(default=None),
+    education_level: str | None = Form(default=None),
+    grade_level: str | None = Form(default=None),
+    takes_advanced_classes: bool | None = Form(default=None),
 ) -> IngestResponse:
     """Turn raw study material into a validated multiple-choice question bank.
 
@@ -209,7 +215,19 @@ async def ingest(
         raise HTTPException(status_code=422, detail=str(error)) from error
 
     try:
-        result: IngestResult = await run_ingestion(parts)
+        result: IngestResult = await run_ingestion(
+            parts,
+            question_count=clamp_question_count(question_count) if question_count is not None else None,
+            learner_profile=(
+                {
+                    "education_level": education_level,
+                    "grade_level": grade_level,
+                    "takes_advanced_classes": takes_advanced_classes,
+                }
+                if education_level
+                else None
+            ),
+        )
     except InvalidRequestError as error:
         # Every model rejected the payload, so the upload is the problem.
         print(f"Ingestion input rejected: {error}")
@@ -274,6 +292,7 @@ def _session_error(error: SessionError) -> HTTPException:
 
 @app.post("/study/session")
 async def create_study_session(
+    request: Request,
     text: str | None = Form(default=None),
     urls: list[str] = Form(default_factory=list),
     files: list[UploadFile] = File(default_factory=list),
@@ -329,7 +348,15 @@ async def create_study_session(
             ingest_options["learner_profile"] = learner_profile
         if question_count is not None:
             ingest_options["question_count"] = clamp_question_count(question_count)
-        result = await run_ingestion(parts, **ingest_options)
+        ingestion = asyncio.create_task(run_ingestion(parts, **ingest_options))
+        while not ingestion.done():
+            await asyncio.wait({ingestion}, timeout=0.25)
+            if await request.is_disconnected():
+                ingestion.cancel()
+                with suppress(asyncio.CancelledError):
+                    await ingestion
+                raise HTTPException(status_code=499, detail="Study loop generation was cancelled.")
+        result = await ingestion
         session = await study_session.create(
             session_id=session_id,
             user_id=f"study-{session_id}",
@@ -340,6 +367,8 @@ async def create_study_session(
             requested_count=question_count,
             timer_seconds=timer_minutes * 60 if timer_minutes else None,
         )
+    except HTTPException:
+        raise
     except InvalidRequestError as error:
         print(f"Study session input rejected: {error}")
         raise HTTPException(status_code=422, detail=str(error)) from error

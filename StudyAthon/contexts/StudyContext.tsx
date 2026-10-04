@@ -49,6 +49,7 @@ type StudyContextValue = {
   busy: boolean;
   error: string | null;
   start: (request: StudySessionRequest) => Promise<boolean>;
+  cancelStart: () => void;
   answer: (selectedIndex: number | null) => Promise<void>;
   reveal: (showAnswers: boolean) => Promise<void>;
   /**
@@ -104,6 +105,8 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   // Guards against a double-tap submitting the same question twice, which the
   // backend rejects as a conflict.
   const inFlight = useRef(false);
+  const startController = useRef<AbortController | null>(null);
+  const startGeneration = useRef(0);
 
   const applyAdvance = useCallback((response: AdvanceResponse) => {
     setIteration(response.iteration);
@@ -132,6 +135,9 @@ export function StudyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reset = useCallback(() => {
+    startGeneration.current += 1;
+    startController.current?.abort();
+    startController.current = null;
     setPhase('idle');
     setSessionId(null);
     setIteration(1);
@@ -170,10 +176,17 @@ const run = useCallback(async <T,>(action: () => Promise<T>): Promise<T | null> 
   }
 }, []);
 
-const start = useCallback(
-  async (request: StudySessionRequest) => {
-    const created = await run(() => createStudySession(request));
-    if (!created) return false;
+const start = useCallback(async (request: StudySessionRequest) => {
+    if (inFlight.current) return false;
+    inFlight.current = true;
+    const generation = ++startGeneration.current;
+    const controller = new AbortController();
+    startController.current = controller;
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await createStudySession(request, controller.signal);
+      if (generation !== startGeneration.current) return false;
       setSessionId(created.session_id);
       setIteration(created.iteration);
       setQuestions(created.questions ?? []);
@@ -188,9 +201,29 @@ const start = useCallback(
           : null,
       );
       return true;
-    },
-    [run],
-  );
+    } catch (caught) {
+      if (generation === startGeneration.current && !(caught instanceof Error && caught.name === 'AbortError')) {
+        setError(describeAgentError(caught));
+      }
+      return false;
+    } finally {
+      if (generation === startGeneration.current) {
+        startController.current = null;
+        inFlight.current = false;
+        setBusy(false);
+      }
+    }
+  }, []);
+
+  const cancelStart = useCallback(() => {
+    if (!startController.current) return;
+    startGeneration.current += 1;
+    startController.current.abort();
+    startController.current = null;
+    inFlight.current = false;
+    setBusy(false);
+    setError(null);
+  }, []);
 
   const answer = useCallback(
     async (selectedIndex: number | null) => {
@@ -328,6 +361,7 @@ const value = useMemo<StudyContextValue>(
       busy,
       error,
       start,
+      cancelStart,
       answer,
       reveal,
       nextRound,
@@ -339,6 +373,7 @@ const value = useMemo<StudyContextValue>(
       answer,
       answers,
       busy,
+      cancelStart,
       cursor,
       end,
       error,

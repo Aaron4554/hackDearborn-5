@@ -89,6 +89,12 @@ export type StudySessionRequest = {
   takesAdvancedClasses?: boolean | null;
 };
 
+export type GeneratedStudyGameSet = {
+  title: string;
+  key_terms: { term: string; definition: string }[];
+  questions: { question: string; options: string[]; correct_index: number; explanation: string }[];
+};
+
 export type FinishResponse = {
   session_id: string;
   iteration: number;
@@ -275,7 +281,7 @@ export async function generateFlashcards(request: FlashcardRequest): Promise<Fla
  * uploaded file together. This runs ingestion on the server, so it is slow by
  * design — tens of seconds across four model calls. Never call it on a render.
  */
-export async function createStudySession(request: StudySessionRequest): Promise<StudyState> {
+export async function createStudySession(request: StudySessionRequest, signal?: AbortSignal): Promise<StudyState> {
   const url = `${agentUrl()}/study/session`;
   const form = new FormData();
 
@@ -294,8 +300,9 @@ export async function createStudySession(request: StudySessionRequest): Promise<
   let response: Response;
   try {
     // No Content-Type header: fetch must set the multipart boundary itself.
-    response = await fetch(url, { method: 'POST', body: form });
-  } catch {
+    response = await fetch(url, { method: 'POST', body: form, signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error;
     throw new AgentError(
       `Could not reach the study backend at ${url}. Start the backend and make sure this device can reach that address.`,
     );
@@ -306,6 +313,56 @@ export async function createStudySession(request: StudySessionRequest): Promise<
     throw new AgentError(detailOf(data) ?? defaultFor(response.status), response.status);
   }
   return data as StudyState;
+}
+
+/** Reuse the grounded note-ingestion pipeline to build content for both game modes. */
+export async function generateStudyGameSet(
+  text: string,
+  learner?: { educationLevel?: string; gradeLevel?: string | null; takesAdvancedClasses?: boolean | null },
+): Promise<GeneratedStudyGameSet> {
+  const url = `${agentUrl()}/ingest`;
+  const form = new FormData();
+  form.append('text', text.trim());
+  form.append('question_count', '8');
+  if (learner?.educationLevel) form.append('education_level', learner.educationLevel);
+  if (learner?.gradeLevel) form.append('grade_level', learner.gradeLevel);
+  if (learner?.takesAdvancedClasses != null) form.append('takes_advanced_classes', String(learner.takesAdvancedClasses));
+  let response: Response;
+  try {
+    response = await fetch(url, { method: 'POST', body: form });
+  } catch {
+    throw new AgentError(`Could not reach the study backend at ${url}.`);
+  }
+  const data = await readBody(response);
+  if (!response.ok) throw new AgentError(detailOf(data) ?? defaultFor(response.status), response.status);
+
+  const payload = data as {
+    concepts?: { topic?: string; statement?: string; evidence_quote?: string }[];
+    questions?: { stem?: string; options?: string[]; correct_index?: number; explanation?: string }[];
+    source_notes?: { title?: string };
+  };
+  const seenTerms = new Set<string>();
+  const keyTerms = (payload.concepts ?? []).flatMap((concept) => {
+    const statement = concept.statement?.trim();
+    if (!statement) return [];
+    const topic = concept.topic?.trim() || '';
+    const term = (topic && !seenTerms.has(topic.toLocaleLowerCase()) ? topic : statement).slice(0, 70);
+    const key = term.toLocaleLowerCase();
+    if (seenTerms.has(key)) return [];
+    seenTerms.add(key);
+    const definition = concept.evidence_quote?.trim() || statement;
+    return [{ term, definition }];
+  }).slice(0, 8);
+  const questions = (payload.questions ?? []).flatMap((question) => {
+    const options = question.options;
+    const correct = question.correct_index;
+    if (!question.stem || !options || options.length < 2 || correct == null || correct < 0 || correct >= options.length) return [];
+    return [{ question: question.stem, options, correct_index: correct, explanation: question.explanation ?? '' }];
+  });
+  if (keyTerms.length < 2 || questions.length < 4) {
+    throw new AgentError('There was not enough material to build both games. Add more notes or choose a broader topic.', 422);
+  }
+  return { title: payload.source_notes?.title?.trim() || 'Your study pack', key_terms: keyTerms, questions };
 }
 
 /** Re-read a session after a reconnect. Also applies the server-side timer. */
