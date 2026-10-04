@@ -102,6 +102,7 @@ export default function HomeScreen() {
   const [showModes, setShowModes] = useState(false);
 
   const submitPrompt = async () => {
+    if (isLoading) return;
     if (!prompt.trim()) {
       setMessage('Add a topic or question to get started.');
       return;
@@ -236,11 +237,8 @@ export default function HomeScreen() {
             blurOnSubmit={true}
             returnKeyType="done"
             onSubmitEditing={() => {
-              if (prompt.trim()) {
-                Keyboard.dismiss();
-                setMessage('');
-                setShowModes(true);
-              }
+              Keyboard.dismiss();
+              void submitPrompt();
             }}
             textAlignVertical="top"
             accessibilityLabel="Your study prompt"
