@@ -249,7 +249,8 @@ replayed rather than regenerated. See *Free-tier quota* above.
 5. Copy `.env.example` to `StudyAthon/.env` and set
    `EXPO_PUBLIC_AGENT_API_URL=http://YOUR_COMPUTER_LAN_IP:8000` (use
    `http://localhost:8000` when running the app in a web browser on this computer).
-   Restart Expo after changing its `.env` file. A physical phone needs the computer's
+   If you change `PORT` in `agent/.env`, change this value to match.
+   Restart Expo after changing its `.env` file (`npx expo start -c`). A physical phone needs the computer's
    reachable LAN IP and both devices on the same network.
 
 The mobile app accepts the server URL as a public setting; never put `GOOGLE_API_KEY`
