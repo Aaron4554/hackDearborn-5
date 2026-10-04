@@ -30,8 +30,14 @@ in prose rather than describing the layout.
 - Split the material into `sections`, one string per topic. Keep each section \
 self-contained.
 - Put proper nouns, technical terms, and formula names in `key_terms`.
-- Never introduce information that is not present in the source. If the source is \
-too thin to study from, say so in the first section rather than padding it.
+- For actual notes, files, or transcripts, never introduce facts that are not in \
+the supplied material. If those materials are too thin, say so rather than padding them.
+- First decide whether a text input is actual study material or a short topic/request. \
+If it is a short request such as "human anatomy" or "teach me photosynthesis", use \
+the named topic as the scope and write concise, accurate introductory notes from \
+established knowledge so a quiz can be built. Keep every note tightly within that \
+requested topic. If the input contains notes, slides, a transcript, or other real \
+course material, use those as the source of truth and do not supplement them.
 - Set `source_kind` to the dominant input format: notes, slides, pdf, transcript, or mixed.
 """
 

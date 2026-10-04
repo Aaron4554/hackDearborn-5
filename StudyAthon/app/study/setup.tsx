@@ -96,7 +96,7 @@ export default function StudySetupScreen() {
         >
           <Text style={styles.title}>What are we{`\n`}working through?</Text>
           <Text style={styles.subtitle}>
-            Paste your notes or drop in a link. We will build a question set from it.
+            Paste your notes, enter a topic, or drop in a link. We will match the quiz to your material.
           </Text>
 
           <View style={styles.card}>
@@ -110,7 +110,7 @@ export default function StudySetupScreen() {
             <TextInput
               multiline
               onChangeText={setText}
-              placeholder="Paste lecture notes, a transcript, an essay..."
+              placeholder="Paste notes or enter a topic, like human anatomy..."
               placeholderTextColor="#9AA49D"
               style={styles.textarea}
               textAlignVertical="top"

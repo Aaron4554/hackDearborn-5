@@ -34,6 +34,7 @@ export default function GamesScreen() {
   const { user } = useAuth();
   const [gameSet, setGameSet] = useState<StudyGameSet | null>(null);
   const [points, setPoints] = useState(0);
+  const [scoreError, setScoreError] = useState('');
   const [mode, setMode] = useState<Mode | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
   const [openCards, setOpenCards] = useState<number[]>([]);
@@ -54,7 +55,12 @@ export default function GamesScreen() {
 
   const reload = useCallback(async () => {
     if (!user) return;
-    setPoints(await loadGamePoints(user.uid));
+    try {
+      setPoints(await loadGamePoints(user.uid));
+      setScoreError('');
+    } catch {
+      setScoreError('Could not load your profile points. Check your connection.');
+    }
   }, [user]);
 
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
@@ -101,8 +107,13 @@ export default function GamesScreen() {
     if (!user) return;
     setWon(victory);
     setFinished(true);
-    const total = await awardGamePoints(user.uid, runId, earned);
-    setPoints(total);
+    try {
+      const total = await awardGamePoints(user.uid, runId, earned);
+      setPoints(total);
+      setScoreError('');
+    } catch {
+      setScoreError('Your game finished, but points could not be saved. Check your connection and try another round.');
+    }
   };
 
   const tapCard = (index: number) => {
@@ -200,6 +211,7 @@ export default function GamesScreen() {
                 <Text style={styles.finishEmoji}>{won ? '🏆' : '🛡️'}</Text>
                 <Text style={styles.finishTitle}>{won ? 'Victory!' : 'The boss got away'}</Text>
                 <Text style={styles.finishCopy}>You earned {mode === 'memory' ? memoryEarned : battleEarned} game points.</Text>
+                {scoreError ? <Text style={styles.scoreError}>{scoreError}</Text> : null}
                 <Pressable onPress={resetRun} style={styles.primaryButton}><Text style={styles.primaryText}>Play again</Text></Pressable>
               </View>
             ) : mode === 'memory' ? (
@@ -259,7 +271,8 @@ export default function GamesScreen() {
                 </Pressable>
               </>
             )}
-            <Text style={styles.pointsNote}>Game points stay on this device. Match streaks and fast correct answers earn bonuses.</Text>
+            {scoreError ? <Text style={styles.scoreError}>{scoreError}</Text> : null}
+            <Text style={styles.pointsNote}>Points are added to your profile and Friends leaderboard. Fast answers and streaks earn bonuses.</Text>
           </>
         )}
       </ScrollView>
@@ -290,6 +303,7 @@ const styles = StyleSheet.create({
   modeTitle: { color: '#2D3E33', fontSize: 14, fontWeight: '800' },
   modeDetail: { color: '#829087', fontSize: 11, lineHeight: 16 },
   pointsNote: { color: '#99A29B', fontSize: 10, lineHeight: 15, textAlign: 'center' },
+  scoreError: { color: '#AD5148', fontSize: 11, lineHeight: 16, textAlign: 'center' },
   gamePanel: { backgroundColor: '#FFFFFF', borderRadius: 21, padding: 17, borderWidth: 1, borderColor: '#E9EDE8', gap: 14 },
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start' },
   backText: { color: '#477B5B', fontSize: 12, fontWeight: '700' },

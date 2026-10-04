@@ -15,11 +15,16 @@ from urllib.parse import urlparse
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
+from google.adk.agents import LlmAgent
 
-from study_buddy.ingest.common import CONCEPTS, QUESTION_BANK, SOURCE_NOTES
+from study_buddy.ingest.common import CONCEPTS, QUESTION_BANK, QUESTIONS, SOURCE_NOTES
 from study_buddy.ingest.pipeline import ingest_pipeline
+from study_buddy.ingest.validation import grounding_validator
+from study_buddy.schemas import QuestionSet
+from study_buddy.settings import WRITER_MAX_OUTPUT_TOKENS, resilient_model
 
 APP_NAME = "studyathon_ingest"
+REPAIR_APP_NAME = "studyathon_question_repair"
 
 _YOUTUBE_HOSTS = {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}
 
@@ -206,12 +211,170 @@ async def run_ingestion(
             detail += f"; last event was {transcript[-1][:400]}"
         raise RuntimeError(f"Ingestion produced no question bank ({detail}).")
 
+    concepts = (state.get(CONCEPTS) or {}).get("concepts") or []
+    source_notes = state.get(SOURCE_NOTES) or {}
+    approved = bank.get("approved") or []
+    if question_count is not None and len(approved) < question_count:
+        repaired = await _repair_question_count(
+            missing=question_count - len(approved),
+            concepts=concepts,
+            approved=approved,
+            rejected=bank.get("rejected") or [],
+            learner_profile=learner_profile or {"education_level": "other"},
+            user_id=user_id,
+        )
+        bank["approved"] = [*approved, *repaired]
+        if len(bank["approved"]) < question_count:
+            raise QuestionCountError(
+                f"The source only supported {len(bank['approved'])} clear questions. "
+                "Add more material or choose a smaller question count."
+            )
+
     return IngestResult(
         question_bank=bank,
-        concepts=(state.get(CONCEPTS) or {}).get("concepts") or [],
-        source_notes=state.get(SOURCE_NOTES) or {},
+        concepts=concepts,
+        source_notes=source_notes,
         transcript=transcript,
     )
+
+
+class QuestionCountError(ValueError):
+    """The validated source could not support the requested quiz length."""
+
+
+async def _repair_question_count(
+    *,
+    missing: int,
+    concepts: list[dict[str, Any]],
+    approved: list[dict[str, Any]],
+    rejected: list[dict[str, Any]],
+    learner_profile: dict[str, Any],
+    user_id: str,
+) -> list[dict[str, Any]]:
+    """Generate and validate only the questions missing from the requested set."""
+    writer = LlmAgent(
+        name="question_count_repair",
+        model=resilient_model(),
+        description="Fills a shortfall in a grounded study question set.",
+        instruction=(
+            "Write exactly the requested number of additional multiple-choice "
+            "questions. Use only the listed concepts and their verbatim evidence "
+            "quotes. Stay within the user's requested topic and learner level. "
+            "Do not repeat or paraphrase any existing question. You may test a "
+            "different detail or application from the same evidence. Every item "
+            "must have exactly four distinct options, a valid correct_index, a "
+            "concise explanation, and the matching concept_id/evidence_quote."
+        ),
+        include_contents="none",
+        output_schema=QuestionSet,
+        output_key="questions",
+        generate_content_config=types.GenerateContentConfig(
+            temperature=0.3,
+            max_output_tokens=WRITER_MAX_OUTPUT_TOKENS,
+        ),
+    )
+    service = InMemorySessionService()
+    session = await service.create_session(
+        app_name=REPAIR_APP_NAME, user_id=user_id
+    )
+    payload = json.dumps(
+        {
+            "additional_question_count": missing,
+            "learner_profile": learner_profile,
+            "concepts": concepts,
+            "already_approved_questions": [
+                {"stem": q.get("stem"), "concept_id": q.get("concept_id")}
+                for q in approved
+            ],
+            "rejected_question_ids_and_reasons": rejected,
+        },
+        ensure_ascii=False,
+    )
+    runner = Runner(agent=writer, app_name=REPAIR_APP_NAME, session_service=service)
+    try:
+        async for _ in runner.run_async(
+            user_id=user_id,
+            session_id=session.id,
+            new_message=types.Content(role="user", parts=[types.Part(text=payload)]),
+        ):
+            pass
+        final = await service.get_session(
+            app_name=REPAIR_APP_NAME, user_id=user_id, session_id=session.id
+        )
+        generated = ((final.state if final else {}).get("questions") or {}).get("questions") or []
+    finally:
+        await service.delete_session(
+            app_name=REPAIR_APP_NAME, user_id=user_id, session_id=session.id
+        )
+
+    concepts_by_id = {str(c.get("id")): c for c in concepts if c.get("id")}
+    existing_stems = {str(q.get("stem", "")).strip().casefold() for q in approved}
+    candidates = []
+    for index, question in enumerate(generated):
+        q = question if isinstance(question, dict) else question.model_dump()
+        concept = concepts_by_id.get(str(q.get("concept_id", "")))
+        options = q.get("options") or []
+        stem = str(q.get("stem", "")).strip()
+        evidence = concept.get("evidence_quote", "") if concept else ""
+        if (
+            not concept
+            or not evidence
+            or not stem
+            or stem.casefold() in existing_stems
+            or len(options) != 4
+            or len({str(option).strip().casefold() for option in options}) != 4
+            or not isinstance(q.get("correct_index"), int)
+            or not 0 <= q["correct_index"] < 4
+        ):
+            continue
+        q["id"] = f"repair-{len(approved) + len(candidates) + 1}"
+        q["evidence_quote"] = evidence
+        candidates.append(q)
+        existing_stems.add(stem.casefold())
+        if len(candidates) == missing:
+            break
+
+    if not candidates:
+        return []
+
+    # Run the same grounding gate as the original bank before exposing repairs.
+    check_service = InMemorySessionService()
+    check_session = await check_service.create_session(
+        app_name=REPAIR_APP_NAME,
+        user_id=user_id,
+        state={
+            CONCEPTS: {"concepts": concepts},
+            QUESTIONS: {"questions": candidates},
+        },
+    )
+    checker = Runner(
+        agent=grounding_validator,
+        app_name=REPAIR_APP_NAME,
+        session_service=check_service,
+    )
+    try:
+        async for _ in checker.run_async(
+            user_id=user_id,
+            session_id=check_session.id,
+            new_message=types.Content(
+                role="user",
+                parts=[types.Part(text="Validate these additional questions.")],
+            ),
+        ):
+            pass
+        final = await check_service.get_session(
+            app_name=REPAIR_APP_NAME,
+            user_id=user_id,
+            session_id=check_session.id,
+        )
+        bank = ((final.state if final else {}).get(QUESTION_BANK) or {})
+        return bank.get("approved") or []
+    finally:
+        await check_service.delete_session(
+            app_name=REPAIR_APP_NAME,
+            user_id=user_id,
+            session_id=check_session.id,
+        )
 
 
 def _event_text(event: Any) -> str:
