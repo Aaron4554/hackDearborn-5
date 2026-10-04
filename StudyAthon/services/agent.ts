@@ -98,6 +98,24 @@ export type FinishResponse = {
   summary: IterationSummary;
 };
 
+export type Flashcard = {
+  id: string;
+  front: string;
+  back: string;
+  hint?: string;
+};
+
+export type FlashcardDeck = {
+  topic: string;
+  cards: Flashcard[];
+};
+
+export type FlashcardRequest = {
+  topic?: string;
+  text?: string;
+  count?: number;
+};
+
 export class AgentError extends Error {
   /** The HTTP status, or 0 when the request never reached the server. */
   readonly status: number;
@@ -239,6 +257,15 @@ function defaultFor(status: number): string {
 export async function chat(message: string): Promise<string> {
   const data = await postJson<{ reply?: string }>('/chat', { message });
   return data?.reply ?? '';
+}
+
+/** Generate a deck of AI flashcards from a topic or notes. */
+export async function generateFlashcards(request: FlashcardRequest): Promise<FlashcardDeck> {
+  return postJson<FlashcardDeck>('/flashcards', {
+    topic: request.topic?.trim() || undefined,
+    text: request.text?.trim() || undefined,
+    count: request.count ?? 8,
+  });
 }
 
 /**

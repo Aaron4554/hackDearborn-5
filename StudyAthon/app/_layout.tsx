@@ -91,6 +91,7 @@ function RootLayoutNav() {
             <Stack.Screen name="study/setup" options={{ headerShown: false }} />
             <Stack.Screen name="study/quiz" options={{ headerShown: false }} />
             <Stack.Screen name="study/results" options={{ headerShown: false }} />
+            <Stack.Screen name="flashcards/index" options={{ headerShown: false }} />
           </Stack.Protected>
         </Stack>
         <StreakBadge />

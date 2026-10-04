@@ -51,6 +51,12 @@ type StudyContextValue = {
   start: (request: StudySessionRequest) => Promise<boolean>;
   answer: (selectedIndex: number | null) => Promise<void>;
   reveal: (showAnswers: boolean) => Promise<void>;
+  /**
+   * Move from a finished round's recap into the questions already waiting from
+   * the backend. Returns false when there is nothing left to start, so the
+   * caller never navigates into a quiz with no round behind it.
+   */
+  nextRound: () => boolean;
   end: () => Promise<void>;
   resume: () => Promise<void>;
   reset: () => void;
@@ -220,6 +226,20 @@ const start = useCallback(
     [applyAdvance, run, sessionId],
   );
 
+  const nextRound = useCallback(() => {
+    // The backend has already handed over the next round's questions by the
+    // time the recap shows; only the phase still says "recap". Flipping it here
+    // is what makes "Start round N" do anything — the quiz screen bounces back
+    // to the recap for as long as the phase reads `results`.
+    if (phase !== 'results' || questions.length === 0) return false;
+    setCursor(0);
+    setSummary(null);
+    setAnswers(null);
+    setError(null);
+    setPhase('quiz');
+    return true;
+  }, [phase, questions.length]);
+
   const end = useCallback(async () => {
     if (!sessionId) {
       reset();
@@ -228,6 +248,11 @@ const start = useCallback(
     await run(async () => {
       const response = await finishStudySession(sessionId);
       setFinishedReason(explainFinish(response.finished_reason));
+      // The finish payload carries the recap for the round being quit, which is
+      // fresher than whatever the screen was last showing. Revealed answers are
+      // left alone: `nextRound` already drops them when a round rolls over, so
+      // anything still here belongs to the recap the student is looking at.
+      setSummary(response.summary ?? null);
       setPhase('finished');
     });
   }, [reset, run, sessionId]);
@@ -305,6 +330,7 @@ const value = useMemo<StudyContextValue>(
       start,
       answer,
       reveal,
+      nextRound,
       end,
       resume,
       reset,
@@ -318,6 +344,7 @@ const value = useMemo<StudyContextValue>(
       error,
       finishedReason,
       iteration,
+      nextRound,
       phase,
       questions,
       reset,

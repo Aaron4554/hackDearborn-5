@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useStudy } from '@/contexts/StudyContext';
@@ -39,8 +39,9 @@ const INGEST_STAGES = [
 export default function StudySetupScreen() {
   const { start, busy, error } = useStudy();
   const { personalInfo } = useAuth();
+  const params = useLocalSearchParams<{ topic?: string; text?: string }>();
 
-  const [text, setText] = useState('');
+  const [text, setText] = useState(params.topic || params.text || '');
   const [url, setUrl] = useState('');
   const [questionCount, setQuestionCount] = useState(10);
   const [timerOn, setTimerOn] = useState(false);

@@ -32,7 +32,7 @@ function makeRunId() {
 
 export default function GamesScreen() {
   const { user } = useAuth();
-  const [gameSet, setGameSet] = useState<StudyGameSet | null>(null);
+  const gameSet: StudyGameSet = fixedStudyGames;
   const [points, setPoints] = useState(0);
   const [scoreError, setScoreError] = useState('');
   const [mode, setMode] = useState<Mode | null>(null);
@@ -64,8 +64,6 @@ export default function GamesScreen() {
   }, [user]);
 
   useFocusEffect(useCallback(() => { void reload(); }, [reload]));
-
-  const createGames = () => setGameSet(fixedStudyGames);
 
   const resetRun = () => {
     setMode(null);
@@ -255,22 +253,14 @@ export default function GamesScreen() {
               <View style={styles.topicIcon}><Ionicons name="sparkles" size={18} color="#477B5B" /></View>
               <View style={styles.topicCopy}><Text style={styles.topicLabel}>BUILT-IN STUDY PACK</Text><Text numberOfLines={3} style={styles.topicText}>Anatomy basics · ready to play offline</Text></View>
             </View>
-            {!gameSet ? (
-              <Pressable onPress={createGames} style={styles.primaryButton}>
-                <Text style={styles.primaryText}>Build anatomy games</Text><Feather name="arrow-up-right" size={17} color="#FFFFFF" />
-              </Pressable>
-            ) : (
-              <>
-                <Text style={styles.sectionTitle}>{gameSet.title}</Text>
-                <Text style={styles.sectionHint}>{gameSet.key_terms.length} key terms · {gameSet.questions.length} battle questions</Text>
-                <Pressable onPress={beginMemory} style={styles.modeCard}>
-                  <View style={[styles.modeIcon, { backgroundColor: '#EEF3FF' }]}><Ionicons name="albums" size={23} color="#5F69A8" /></View><View style={styles.modeCopy}><Text style={styles.modeTitle}>Memory match</Text><Text style={styles.modeDetail}>Pair each key term with its meaning. Earn points for matches and streaks.</Text></View><Feather name="chevron-right" size={19} color="#94A098" />
-                </Pressable>
-                <Pressable onPress={beginBossBattle} style={styles.modeCard}>
-                  <View style={[styles.modeIcon, { backgroundColor: '#FFF0EB' }]}><Ionicons name="flame" size={23} color="#C8664F" /></View><View style={styles.modeCopy}><Text style={styles.modeTitle}>Knowledge dragon</Text><Text style={styles.modeDetail}>Answer quickly to deal more damage. Wrong answers cost a shield.</Text></View><Feather name="chevron-right" size={19} color="#94A098" />
-                </Pressable>
-              </>
-            )}
+            <Text style={styles.sectionTitle}>{gameSet.title}</Text>
+            <Text style={styles.sectionHint}>{gameSet.key_terms.length} key terms · {gameSet.questions.length} battle questions</Text>
+            <Pressable onPress={beginMemory} style={styles.modeCard}>
+              <View style={[styles.modeIcon, { backgroundColor: '#EEF3FF' }]}><Ionicons name="albums" size={23} color="#5F69A8" /></View><View style={styles.modeCopy}><Text style={styles.modeTitle}>Memory match</Text><Text style={styles.modeDetail}>Pair each key term with its meaning. Earn points for matches and streaks.</Text></View><Feather name="chevron-right" size={19} color="#94A098" />
+            </Pressable>
+            <Pressable onPress={beginBossBattle} style={styles.modeCard}>
+              <View style={[styles.modeIcon, { backgroundColor: '#FFF0EB' }]}><Ionicons name="flame" size={23} color="#C8664F" /></View><View style={styles.modeCopy}><Text style={styles.modeTitle}>Knowledge dragon</Text><Text style={styles.modeDetail}>Answer quickly to deal more damage. Wrong answers cost a shield.</Text></View><Feather name="chevron-right" size={19} color="#94A098" />
+            </Pressable>
             {scoreError ? <Text style={styles.scoreError}>{scoreError}</Text> : null}
             <Text style={styles.pointsNote}>Points are added to your profile and Friends leaderboard. Fast answers and streaks earn bonuses.</Text>
           </>
