@@ -225,6 +225,21 @@ export async function getFriendProfile(uid: string): Promise<FriendProfile | nul
   return snapshot.exists() ? profileFromData(snapshot.data()) : null;
 }
 
+/**
+ * Read several profiles by uid in one pass. `users` denies `list`, so each one
+ * has to be fetched by its own path. Missing docs are skipped rather than
+ * thrown on, so one deleted account cannot blank the whole leaderboard.
+ */
+export async function loadProfilesByUid(uids: string[]): Promise<UserProfile[]> {
+  const unique = Array.from(new Set(uids));
+  const snapshots = await Promise.all(unique.map((uid) => getDoc(doc(db, 'users', uid))));
+  const profiles: UserProfile[] = [];
+  snapshots.forEach((snapshot) => {
+    if (snapshot.exists()) profiles.push(profileFromData(snapshot.data()));
+  });
+  return profiles;
+}
+
 export function describeSocialError(error: unknown) {
   if (error instanceof SocialError) return error.message;
   if ((error as FirestoreError)?.code === 'permission-denied') {

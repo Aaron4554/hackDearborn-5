@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,7 @@ import {
   friendsQuery,
   getFriendProfile,
   incomingRequestsQuery,
+  loadProfilesByUid,
   respondToFriendRequest,
   sendFriendRequest,
   type FriendProfile,
@@ -103,6 +105,36 @@ export default function FriendsScreen() {
       profileUnsubscribes.forEach((unsubscribe) => unsubscribe());
     };
   }, [user]);
+
+  /**
+   * The live listeners above keep the board current while it is open, but they are
+   * the only thing feeding it. A Firestore Listen stream that fails at the
+   * transport layer is retried internally and never reaches `onSnapshot`'s error
+   * callback, so the board can silently serve its cached value -- typically the
+   * zeros from a cold start -- for the rest of the session. The games tab avoids
+   * this by re-reading on focus, so a finished game always shows up there.
+   * Re-read here too, or the leaderboard is the one screen that can disagree with
+   * the points actually banked.
+   */
+  // Keyed on the roster so a newly accepted friend is picked up too. It settles
+  // once the roster stops changing, so this cannot loop against setFriends.
+  const rosterKey = useMemo(
+    () => [...friends.map((friend) => friend.uid), user?.uid].sort().join(','),
+    [friends, user],
+  );
+
+  const refreshPoints = useCallback(async () => {
+    if (!user) return;
+    try {
+      const fresh = await loadProfilesByUid(rosterKey.split(','));
+      setFriends(fresh.filter((person) => person.uid !== user.uid));
+      setError('');
+    } catch (refreshError) {
+      setError(describeSocialError(refreshError));
+    }
+  }, [user, rosterKey]);
+
+  useFocusEffect(useCallback(() => { void refreshPoints(); }, [refreshPoints]));
 
   const leaderboard = useMemo(
     () => [...(profile ? [profile] : []), ...friends].sort(
