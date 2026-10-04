@@ -47,16 +47,18 @@ cd StudyAthon/agent
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env        # add a Gemini API key from Google AI Studio
-python server.py            # http://localhost:8000
+python server.py            # http://localhost:8000/health
 ```
 
 App:
 
 ```sh
 cd StudyAthon
-cp .env.example .env        # set EXPO_PUBLIC_AGENT_API_URL to the backend
-npx expo start
+cp .env.example .env        # set EXPO_PUBLIC_AGENT_API_URL to match the backend
+npx expo start -c           # restart with -c after editing .env
 ```
+
+If port 8000 is taken, change `PORT` in `StudyAthon/agent/.env` and `EXPO_PUBLIC_AGENT_API_URL` in `StudyAthon/.env` to the same value. For full setup and troubleshooting, see `StudyAthon/AGENTS.md`.
 
 `StudyAthon/agent/README.md` has the endpoint reference, the ingestion agent
 graph, and the tuning knobs.
