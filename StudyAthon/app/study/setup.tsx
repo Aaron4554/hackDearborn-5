@@ -246,7 +246,7 @@ export default function StudySetupScreen() {
                 ))}
               </Text>
               <Text style={styles.loadingHint}>
-                This runs on the study agent, so it can take up to a minute.
+                This can take up to a minute.
               </Text>
               <Pressable accessibilityRole="button" onPress={cancelStart} style={styles.cancelButton}>
                 <Text style={styles.cancelButtonText}>Cancel generation</Text>
