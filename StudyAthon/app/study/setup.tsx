@@ -246,7 +246,7 @@ export default function StudySetupScreen() {
                 ))}
               </Text>
               <Text style={styles.loadingHint}>
-                This runs on the study agent, so it can take up to a minute.
+                This can take up to a minute.
               </Text>
             </View>
           </View>
