@@ -91,6 +91,7 @@ export default function HomeScreen() {
   const [answer, setAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showModes, setShowModes] = useState(false);
+  const hasPrompt = prompt.trim().length > 0;
 
   const submitPrompt = async () => {
     if (isLoading) return;
@@ -145,10 +146,6 @@ export default function HomeScreen() {
   };
 
   const startLearning = () => {
-    if (!prompt.trim()) {
-      setMessage('Add a topic or question to get started.');
-      return;
-    }
     setMessage('');
     Keyboard.dismiss();
     setShowModes(true);
@@ -158,7 +155,16 @@ export default function HomeScreen() {
 
   const renderModeTile = (mode: (ReturnType<typeof getModes>)[number]) => {
     const isNotes = mode.key === 'notes';
+    // Short Notes is just the Ask action under another name, so unlike the other
+    // three modes it has nowhere to collect a topic once you leave this screen.
+    const notesUnavailable = isNotes && !hasPrompt;
     const notesLoading = isNotes && isLoading;
+    const blocked = notesUnavailable || notesLoading;
+    const subtitle = notesLoading
+      ? 'Generating notes…'
+      : notesUnavailable
+        ? 'Type a question first'
+        : mode.subtitle;
     return (
       <Pressable
         key={mode.key}
@@ -166,17 +172,16 @@ export default function HomeScreen() {
           setShowModes(false);
           launchMode(mode.key);
         }}
-        disabled={notesLoading}
+        disabled={blocked}
         accessibilityRole="button"
-        style={({ pressed }) => [styles.modeTile, (pressed || notesLoading) && styles.pressed]}>
+        accessibilityState={{ disabled: blocked, busy: notesLoading }}
+        style={({ pressed }) => [styles.modeTile, blocked && styles.modeTileDisabled, pressed && styles.pressed]}>
         <View style={[styles.modeTileIcon, { backgroundColor: mode.background }]}>
           <Ionicons name={mode.icon} size={18} color={mode.color} />
         </View>
         <View style={styles.modeTileCopy}>
           <Text style={styles.modeTileTitle}>{mode.title}</Text>
-          <Text style={styles.modeTileSubtitle}>
-            {notesLoading ? 'Generating notes…' : mode.subtitle}
-          </Text>
+          <Text style={styles.modeTileSubtitle}>{subtitle}</Text>
         </View>
         {notesLoading ? (
           <ActivityIndicator size="small" color={mode.color} />
@@ -242,9 +247,12 @@ export default function HomeScreen() {
               onPress={submitPrompt}
               disabled={isLoading}
               accessibilityRole="button"
+              accessibilityState={{ busy: isLoading }}
               style={({ pressed }) => [styles.secondaryButton, (pressed || isLoading) && styles.pressed]}>
-              <Ionicons name="sparkles-outline" size={15} color={theme.accentText} />
-              <Text style={styles.secondaryButtonText}>Ask</Text>
+              {isLoading
+                ? <ActivityIndicator size="small" color={theme.accentText} />
+                : <Ionicons name="sparkles-outline" size={15} color={theme.accentText} />}
+              <Text style={styles.secondaryButtonText}>{isLoading ? 'Asking…' : 'Ask'}</Text>
             </Pressable>
             <Pressable
               onPress={startLearning}
@@ -255,6 +263,22 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
+
+        {isLoading ? (
+          <View
+            style={[styles.answerCard, styles.thinkingCard]}
+            accessibilityLiveRegion="polite"
+            accessible
+            accessibilityLabel="Your study buddy is thinking">
+            <View style={styles.answerHeading}>
+              <View style={styles.aiIcon}>
+                <ActivityIndicator size="small" color={theme.accentText} />
+              </View>
+              <Text style={styles.promptTitle}>Your study buddy is thinking</Text>
+            </View>
+            <Text style={styles.thinkingText}>Pulling your notes together…</Text>
+          </View>
+        ) : null}
 
         {answer ? (
           <View style={styles.answerCard}>
@@ -359,7 +383,7 @@ export default function HomeScreen() {
               <View style={styles.sheetHeading}>
                 <Text style={styles.sheetTitle}>Choose your study mode</Text>
                 <Text numberOfLines={1} style={styles.sheetTopic}>
-                  {prompt.trim()}
+                  {prompt.trim() || 'No topic yet — you can add one on the next screen'}
                 </Text>
               </View>
               <Pressable
@@ -471,12 +495,15 @@ function buildStyles(theme: Theme) {
     marginTop: 2,
   },
   answerCard: { backgroundColor: theme.accentSoft, borderRadius: 18, padding: 16, marginTop: 13 },
+  thinkingCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  thinkingText: { color: theme.textBody, fontSize: 13, flex: 1 },
   answerHeading: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 10 },
   promptFooter: { borderTopWidth: 1, borderTopColor: theme.surfaceSoft, paddingTop: 14, marginTop: 13, flexDirection: 'column', alignItems: 'stretch', gap: 12 },
   secondaryButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, borderWidth: 1, borderColor: theme.border },
   secondaryButtonText: { color: theme.accentText, fontWeight: '800', fontSize: 15 },
   sendButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 22, backgroundColor: theme.accentFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   sendButtonText: { color: theme.onAccent, fontWeight: '800', fontSize: 15 },
+  modeTileDisabled: { opacity: 0.5 },
   pressed: { opacity: 0.75 },
   suggestionsSection: { marginTop: 25 },
   sectionLabel: { color: theme.textMuted, fontSize: 11, letterSpacing: 1.4, fontWeight: '800', marginBottom: 11 },
