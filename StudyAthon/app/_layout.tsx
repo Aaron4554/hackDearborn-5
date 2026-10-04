@@ -1,4 +1,3 @@
-import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -24,24 +23,15 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  // Nothing blocks first paint, so the splash can go as soon as we mount. An
+  // earlier version awaited a bundled font here via `useFonts`; on web that path
+  // verifies the font with fontfaceobserver, which rejects after 12s when the
+  // face never loads. expo-font only catches that rejection synchronously, so it
+  // escaped as an unhandled rejection and took the whole app down with it. The
+  // app uses no custom font, so there is nothing to wait for.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+    SplashScreen.hideAsync();
+  }, []);
 
   return (
     <AuthProvider>
